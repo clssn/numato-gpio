@@ -56,7 +56,7 @@ def discover():
             device_file = "/dev/ttyACM{}".format(i)
 
             # device already registered?
-            dev_ids = {dev.device: dev.id for dev in devices}
+            dev_ids = {dev.device: dev.id for dev in devices.values()}
             if device_file in dev_ids:
                 raise NumatoGpioError(
                     "ACM device {} already discovered with id {}".format(
@@ -86,7 +86,7 @@ def discover():
 
             # success -> add device
             devices[device_id] = gpio
-        except Exception as e:
+        except (NumatoGpioError, OSError):
             if gpio:
                 gpio.cleanup()
                 del gpio
@@ -235,7 +235,7 @@ class NumatoUsbGpio:
             "enabled" if enable else "disabled"
         ).encode()
         with self._rw_lock:
-            self._ser.write(query)
+            self._write(query)
             self._read(len(query) + len(response) + 2)
 
     def add_event_detect(self, port, callback, edge=BOTH):
@@ -278,39 +278,35 @@ class NumatoUsbGpio:
                 "only ports 1 to 7 are ADC capable.".format(adc_port)
             )
         with self._rw_lock:
-            try:
-                query = ("adc read {}\r\n".format(adc_port)).encode()
-                self._ser.write(query)
-                self._read(len(query) + 1)
-                resp = self._read_until(">")
-                return int(resp[0 : resp.find("\r")])
-            except (serial.serialutil.SerialException, NumatoGpioError):
-                self._ser = None
-                raise
+            query = ("adc read {}\r\n".format(adc_port)).encode()
+            self._write(query)
+            self._read(len(query) + 1)
+            resp = self._read_until(">")
+            return int(resp[: resp.find("\r")])
 
     def _write_int32(self, query):
         query = (query + "\r\n").encode()
         with self._rw_lock:
-            try:
-                self._ser.write(query)
-                self._read(len(query) + 2)
-            except (serial.serialutil.SerialException, NumatoGpioError):
-                self._ser = None
-                raise
+            self._write(query)
+            self._read(len(query) + 2)
 
     def _read_int32(self, query):
         query = (query + "\r\n").encode()
         with self._rw_lock:
-            try:
-                self._ser.write(query)
-                self._read(len(query) + 1)
-                response = self._read(8)
-                val = int(response, 16)
-                self._read(3)
-            except (serial.serialutil.SerialException, NumatoGpioError):
-                self._ser = None
-                raise
+            self._write(query)
+            self._read(len(query) + 1)
+            response = self._read(8)
+            val = int(response, 16)
+            self._read(3)
+
         return val
+
+    def _write(self, query):
+        try:
+            self._ser.write(query)
+        except serial.serialutil.SerialException:
+            self._ser = None
+            raise NumatoGpioError("Serial communication failure")
 
     def _read(self, num):
         while len(self._buf) < num:
@@ -399,7 +395,7 @@ class NumatoUsbGpio:
                 else:
                     with self._input_queue_lock:
                         self._buf += buf
-        except (TypeError, serial.serialutil.SerialException):
+        except serial.serialutil.SerialException:
             pass  # ends the polling loop and its thread
 
     def _check_port_range(self, port):
