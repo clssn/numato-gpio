@@ -4,7 +4,23 @@ This Python API can be used to control [Numato 32 Port USB
 GPIO](https://numato.com/product/32-channel-usb-gpio-module-with-analog-inputs)
 expanders.
 
+* Configure ports as input or output port
+* Write to output ports
+* Read from input ports
+* Read integer values from ADC input ports (1 - 7)
+* Register a callback for input port events (edge detection)
+
 ## Usage
+
+Install latest development version:
+
+    pip install --user git+https://github.com/clssn/numato-gpio.git
+
+Install latest release:
+
+    pip install --user numato-gpio
+
+Once installed, the API can be used like:
 
 ```python
 import numato_gpio as gpio
@@ -46,6 +62,6 @@ integration since 2018, there are quite some aspects to improve. The following
 issues are only the ones the author is aware of:
 
 * No unit tests
-* Exceptions of type Exception are caught
+* Some docstrings are hard to understand
 * Device discovery/registry as module-global dict is sub-optimal
 * Only `/dev/ACMx` devices are scanned which were mapped on the author's Linux
