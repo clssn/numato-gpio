@@ -395,7 +395,7 @@ class NumatoUsbGpio:
                 else:
                     with self._input_queue_lock:
                         self._buf += buf
-        except serial.serialutil.SerialException:
+        except (TypeError, serial.serialutil.SerialException):
             pass  # ends the polling loop and its thread
 
     def _check_port_range(self, port):
