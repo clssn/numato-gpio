@@ -60,9 +60,7 @@ def discover():
             if device_file in dev_ids:
                 raise NumatoGpioError(
                     "ACM device {} already discovered with id {}".format(
-                        device_file, dev_ids[device_file]
-                    )
-                )
+                        device_file, dev_ids[device_file]))
             # can open new device?
             gpio = NumatoUsbGpio(device_file)
 
@@ -71,18 +69,14 @@ def discover():
             if ver not in SUPPORTED_DEVICE_VERSIONS:
                 raise NumatoGpioError(
                     "ACM device {} has unsupported device version {}".format(
-                        device_file, ver
-                    )
-                )
+                        device_file, ver))
 
             # device id unique?
             device_id = gpio.id()
             if device_id in devices:
                 raise NumatoGpioError(
                     "ACM device {} has duplicate device id {}".format(
-                        device_file, device_id
-                    )
-                )
+                        device_file, device_id))
 
             # success -> add device
             devices[device_id] = gpio
@@ -111,7 +105,6 @@ class NumatoUsbGpio:
     Facilitates operations like initialization, reading and manipulating logic
     levels of ports, etc.
     """
-
     def __init__(self, device="/dev/ttyACM0"):
         """Open a serial connection to a Numato device and initialize it."""
 
@@ -135,7 +128,8 @@ class NumatoUsbGpio:
         self._id = self.id()
         self._ver = self.ver()
         if self._ver not in SUPPORTED_DEVICE_VERSIONS:
-            raise NumatoGpioError("Device version {} unsupported".format(self._ver))
+            raise NumatoGpioError("Device version {} unsupported".format(
+                self._ver))
 
     def ver(self):
         """Return the device's version number as an integer value."""
@@ -153,8 +147,7 @@ class NumatoUsbGpio:
         self._check_port_range(port)
         with self._rw_lock:
             new_iodir = (self._iodir & ((1 << port) ^ 0xFFFFFFFF)) | (
-                (0 if not direction else 1) << port
-            )
+                (0 if not direction else 1) << port)
             self.iodir(new_iodir)
 
     def cleanup(self):
@@ -166,7 +159,6 @@ class NumatoUsbGpio:
         with self._rw_lock:
             self.iomask(0xFFFFFFFF)
             self.iodir(0xFFFFFFFF)
-            self._ser.close()
 
     def write(self, port, value):
         """Write the logic level of a single port.
@@ -178,8 +170,7 @@ class NumatoUsbGpio:
             if (self._iodir >> port) & 1:
                 raise NumatoGpioError("Can't write to input port")
             self._state = (self._state & ((1 << port) ^ 0xFFFFFFFF)) | (
-                (0 if not value else 1) << port
-            )
+                (0 if not value else 1) << port)
             self.writeall(self._state)
 
     def read(self, port):
@@ -232,14 +223,13 @@ class NumatoUsbGpio:
         """
         query = "gpio notify {}\r\n".format("on" if enable else "off").encode()
         response = "gpio notify {}\r\n".format(
-            "enabled" if enable else "disabled"
-        ).encode()
+            "enabled" if enable else "disabled").encode()
         with self._rw_lock:
             self._write(query)
             self._read(len(query) + len(response) + 2)
 
     def add_event_detect(self, port, callback, edge=BOTH):
-        """Register a callback function for asynchronous notifications on input port events.
+        """Register a callback for async notifications on input port events.
 
         An event is triggered by a logic level changes of the particular input
         port. Note that for this mechanism to work you must also enable
@@ -275,14 +265,13 @@ class NumatoUsbGpio:
         if adc_port not in range(1, 8):
             raise NumatoGpioError(
                 "Can't read analog value from port {} - "
-                "only ports 1 to 7 are ADC capable.".format(adc_port)
-            )
+                "only ports 1 to 7 are ADC capable.".format(adc_port))
         with self._rw_lock:
             query = ("adc read {}\r\n".format(adc_port)).encode()
             self._write(query)
             self._read(len(query) + 1)
             resp = self._read_until(">")
-            return int(resp[: resp.find("\r")])
+            return int(resp[:resp.find("\r")])
 
     def _write_int32(self, query):
         query = (query + "\r\n").encode()
@@ -377,21 +366,20 @@ class NumatoUsbGpio:
                 if current_value and previous_value:
                     edges = current_value ^ previous_value
 
-                    def level(port):
+                    def logic_level(port):
                         return bool(current_value & (1 << port))
 
                     def edge_detected(port):
                         return bool(edges & (1 << port))
 
                     def edge_selected(port):
-                        lvl = level(port)
-                        return (lvl and self._edge[port] in [RISING, BOTH]) or (
-                            not lvl and self._edge[port] in [FALLING, BOTH]
-                        )
+                        lv = logic_level(port)
+                        return (lv and self._edge[port] in [RISING, BOTH]) or (
+                            not lv and self._edge[port] in [FALLING, BOTH])
 
                     for port in range(32):
                         if edge_detected(port) and edge_selected(port):
-                            self._callback[port](port, level(port))
+                            self._callback[port](port, logic_level(port))
                 else:
                     with self._input_queue_lock:
                         self._buf += buf
@@ -408,6 +396,7 @@ class NumatoUsbGpio:
 
     def __str__(self):
         """Return human readable string of the device's curent state."""
-        return "dev: {} | id: {} | iodir: 0x{:08x} | iomask: 0x{:08x} | state: 0x{:08x}".format(
-            self.device, self._id, self._iodir, self._iomask, self._state
-        )
+        return ("dev: {} | id: {} | iodir: 0x{:08x} | "
+                "iomask: 0x{:08x} | state: 0x{:08x}".format(
+                    self.device, self._id, self._iodir, self._iomask,
+                    self._state))
