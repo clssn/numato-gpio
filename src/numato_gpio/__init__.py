@@ -46,7 +46,7 @@ def discover():
     """
     # remove disconnected
     for dev_id, dev in list(devices.items()):
-        if not dev._ser:
+        if not (dev._ser and dev._ser.is_open):
             del devices[dev_id]
 
     # discover newly connected
@@ -109,13 +109,14 @@ class NumatoUsbGpio:
         """Open a serial connection to a Numato device and initialize it."""
 
         self.device = device
+        self._id = None
         self._iomask = 0
         self._iodir = 0xFFFFFFFF
         self._state = 0
         self._buf = ""
         self._poll_thread = threading.Thread(target=self._poll)
         self._rw_lock = threading.RLock()
-        self._input_queue_lock = threading.RLock()
+        self._can_read = threading.Condition()
         self._callback = []
         self._edge = []
         for _ in range(32):
@@ -123,6 +124,7 @@ class NumatoUsbGpio:
             self._callback.append(None)
 
         self._ser = serial.Serial(self.device, 19200, timeout=1)
+        self._write("gpio notify off\r\n".encode())
         self._ser.read(DEVICE_BUFFER_SIZE)  # drain old data from output buffer
         self._poll_thread.start()
         self._id = self.id()
@@ -159,6 +161,8 @@ class NumatoUsbGpio:
         with self._rw_lock:
             self.iomask(0xFFFFFFFF)
             self.iodir(0xFFFFFFFF)
+            self.notify(False)
+            self._ser.close()
 
     def write(self, port, value):
         """Write the logic level of a single port.
@@ -294,34 +298,21 @@ class NumatoUsbGpio:
         try:
             self._ser.write(query)
         except serial.serialutil.SerialException:
-            self._ser = None
+            self._ser.close()
             raise NumatoGpioError("Serial communication failure")
 
     def _read(self, num):
+        self._can_read.acquire()
         while len(self._buf) < num:
-            if not self._poll_thread.is_alive():
-                raise NumatoGpioError(
-                    "Lost connection to Numato GPIO device {}".format(self._id)
-                )
-            time.sleep(0)  # thread yield
-
-        with self._input_queue_lock:
-            response, self._buf = self._buf[0:num], self._buf[num:]
+            self._can_read.wait()
+        response, self._buf = self._buf[0:num], self._buf[num:]
+        self._can_read.release()
         return response
 
     def _read_until(self, end_str):
         response = ""
         while not response.endswith(end_str):
-            while len(self._buf) == 0:
-                if not self._poll_thread.is_alive():
-                    raise NumatoGpioError(
-                        "Lost connection to Numato GPIO device {}".format(self._id)
-                    )
-                time.sleep(0)  # thread yield
-
-            with self._input_queue_lock:
-                resp_char, self._buf = self._buf[0], self._buf[1:]
-            response += resp_char
+            response += self._read(1)
         return response
 
     def _poll(self):
@@ -341,7 +332,6 @@ class NumatoUsbGpio:
                 def read_notification():
                     buf = self._ser.read(1).decode()
                     if not buf:
-                        time.sleep(0)  # thread yield
                         return None, None, buf
                     if buf != "\r":
                         return None, None, buf
@@ -380,19 +370,18 @@ class NumatoUsbGpio:
                     for port in range(32):
                         if edge_detected(port) and edge_selected(port):
                             self._callback[port](port, logic_level(port))
-                else:
-                    with self._input_queue_lock:
-                        self._buf += buf
+                elif buf:
+                    self._can_read.acquire()
+                    self._buf += buf
+                    self._can_read.notify()
+                    self._can_read.release()
         except (TypeError, serial.serialutil.SerialException):
+            self._ser.close()
             pass  # ends the polling loop and its thread
 
     def _check_port_range(self, port):
         if port not in range(32):
             raise NumatoGpioError("Port number {} out of range.".format(port))
-
-    def __del__(self):
-        """End and remove polling thread on destruction."""
-        del self._poll_thread
 
     def __str__(self):
         """Return human readable string of the device's curent state."""
