@@ -24,6 +24,9 @@ class NumatoGpioError(Exception):
     pass
 
 
+DISCOVER_LOCK = threading.RLock()
+
+
 def discover():
     """Scan a set of unix device files to find Numato USB devices.
 
@@ -44,46 +47,42 @@ def discover():
     4) id set 00000005
     5) Quit screen with: Ctrl-a + \
     """
-    # remove disconnected
-    for dev_id, dev in list(devices.items()):
-        if not (dev._ser and dev._ser.is_open):
-            del devices[dev_id]
+    with DISCOVER_LOCK:
+        # remove disconnected
+        for dev_id, dev in list(devices.items()):
+            if not (dev._ser and dev._ser.is_open):
+                del devices[dev_id]
 
-    # discover newly connected
-    for i in range(ACM_DEVICE_RANGE):
-        gpio = None
-        try:
+        # discover newly connected
+        for i in range(ACM_DEVICE_RANGE):
+            gpio = None
             device_file = "/dev/ttyACM{}".format(i)
-
             # device already registered?
-            dev_ids = {dev.device: dev.id for dev in devices.values()}
-            if device_file in dev_ids:
-                raise NumatoGpioError(
-                    "ACM device {} already discovered with id {}".format(
-                        device_file, dev_ids[device_file]))
-            # can open new device?
-            gpio = NumatoUsbGpio(device_file)
+            if device_file in (dev.device for dev in devices.values()):
+                continue
+            try:
+                gpio = NumatoUsbGpio(device_file)
 
-            # version readable and supported?
-            ver = gpio.ver()
-            if ver not in SUPPORTED_DEVICE_VERSIONS:
-                raise NumatoGpioError(
-                    "ACM device {} has unsupported device version {}".format(
-                        device_file, ver))
+                # version readable and supported?
+                ver = gpio.ver()
+                if ver not in SUPPORTED_DEVICE_VERSIONS:
+                    raise NumatoGpioError(
+                        "ACM device {} has unsupported device version {}".
+                        format(device_file, ver))
 
-            # device id unique?
-            device_id = gpio.id()
-            if device_id in devices:
-                raise NumatoGpioError(
-                    "ACM device {} has duplicate device id {}".format(
-                        device_file, device_id))
+                # device id unique?
+                device_id = gpio.id()
+                if device_id in devices:
+                    raise NumatoGpioError(
+                        "ACM device {} has duplicate device id {}".format(
+                            device_file, device_id))
 
-            # success -> add device
-            devices[device_id] = gpio
-        except (NumatoGpioError, OSError):
-            if gpio:
-                gpio.cleanup()
-                del gpio
+                # success -> add device
+                devices[device_id] = gpio
+            except (NumatoGpioError, OSError):
+                if gpio:
+                    gpio.cleanup()
+                    del gpio
 
 
 def cleanup():
@@ -297,7 +296,7 @@ class NumatoUsbGpio:
     def _write(self, query):
         try:
             with self._rw_lock:
-            self._ser.write(query)
+                self._ser.write(query)
         except serial.serialutil.SerialException:
             self._ser.close()
             raise NumatoGpioError("Serial communication failure")
