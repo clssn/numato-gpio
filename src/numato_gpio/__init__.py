@@ -274,7 +274,12 @@ class NumatoUsbGpio:
             self._write(query)
             self._read(len(query) + 1)
             resp = self._read_until(">")
-            return int(resp[:resp.find("\r")])
+            try:
+                return int(resp[:resp.find("\r")])
+            except ValueError:
+                raise NumatoGpioError(
+                    "Query '{}' returned unexpected result {}. "
+                    "Expected 10 bit decimal integer.".format(query, resp))
 
     def _write_int32(self, query):
         query = (query + "\r\n").encode()
@@ -288,7 +293,13 @@ class NumatoUsbGpio:
             self._write(query)
             self._read(len(query) + 1)
             response = self._read(8)
-            val = int(response, 16)
+            try:
+                val = int(response, 16)
+            except ValueError:
+                raise NumatoGpioError(
+                    "Query '{}' returned unexpected result {}. "
+                    "Expected 32 bit hexadecimal integer.".format(
+                        query, response))
             self._read(3)
 
         return val
