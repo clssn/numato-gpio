@@ -296,6 +296,7 @@ class NumatoUsbGpio:
 
     def _write(self, query):
         try:
+            with self._rw_lock:
             self._ser.write(query)
         except serial.serialutil.SerialException:
             self._ser.close()
