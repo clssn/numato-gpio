@@ -58,7 +58,7 @@ def discover():
             gpio = None
             device_file = "/dev/ttyACM{}".format(i)
             # device already registered?
-            if device_file in (dev.device for dev in devices.values()):
+            if device_file in (dev.dev_file for dev in devices.values()):
                 continue
             try:
                 gpio = NumatoUsbGpio(device_file)
@@ -107,7 +107,7 @@ class NumatoUsbGpio:
     def __init__(self, device="/dev/ttyACM0"):
         """Open a serial connection to a Numato device and initialize it."""
 
-        self.device = device
+        self.dev_file = device
         self._id = None
         self._iomask = 0
         self._iodir = 0xFFFFFFFF
@@ -116,15 +116,11 @@ class NumatoUsbGpio:
         self._poll_thread = threading.Thread(target=self._poll)
         self._rw_lock = threading.RLock()
         self._can_read = threading.Condition()
-        self._callback = []
-        self._edge = []
-        for _ in range(32):
-            self._edge.append(0)
-            self._callback.append(None)
-
-        self._ser = serial.Serial(self.device, 19200, timeout=1)
+        self._callback = [0] * 32
+        self._edge = [None] * 32
+        self._ser = serial.Serial(self.dev_file, 19200, timeout=1)
         self._write("gpio notify off\r\n".encode())
-        self._ser.read(DEVICE_BUFFER_SIZE)  # drain old data from output buffer
+        self._drain_ser_buffer()
         self._poll_thread.start()
         self._id = self.id()
         self._ver = self.ver()
@@ -398,5 +394,9 @@ class NumatoUsbGpio:
         """Return human readable string of the device's curent state."""
         return ("dev: {} | id: {} | iodir: 0x{:08x} | "
                 "iomask: 0x{:08x} | state: 0x{:08x}".format(
-                    self.device, self._id, self._iodir, self._iomask,
+                    self.dev_file, self._id, self._iodir, self._iomask,
                     self._state))
+
+    def _drain_ser_buffer(self):
+        while self._ser.read(DEVICE_BUFFER_SIZE):
+            pass
