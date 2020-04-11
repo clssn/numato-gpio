@@ -4,6 +4,18 @@ ChangeLog
 This project is semantically versioned according to
 [SemVer](http://www.semver.org).
 
+Release 0.4.0
+-------------
+
+11 April 2020
+
+This release is about refactoring and refinement of locking for thread safety
+and error handling. It has no breaking changes.
+
+- Lock discovery method, so no separate thread could interfere doing the same
+- Lock low level _write method to protect its direct use in the constructor
+- Refactor towards more pythonic code
+
 Release 0.3.1
 -------------
 
