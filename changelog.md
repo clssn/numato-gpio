@@ -4,6 +4,11 @@ ChangeLog
 This project is semantically versioned according to
 [SemVer](http://www.semver.org).
 
+Release 0.5.0 (Unreleased)
+--------------------------
+
+This version has not been released yet.
+
 Release 0.4.0
 -------------
 
