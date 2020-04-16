@@ -2,7 +2,6 @@
 
 import serial
 import threading
-import time
 
 # Edge detection
 RISING = 1
@@ -13,7 +12,6 @@ BOTH = 3
 OUT = 0
 IN = 1
 
-SUPPORTED_DEVICE_VERSIONS = [9]
 ACM_DEVICE_RANGE = 10
 DEVICE_BUFFER_SIZE = 1000000
 
@@ -62,13 +60,6 @@ def discover():
                 continue
             try:
                 gpio = NumatoUsbGpio(device_file)
-
-                # version readable and supported?
-                ver = gpio.ver()
-                if ver not in SUPPORTED_DEVICE_VERSIONS:
-                    raise NumatoGpioError(
-                        "ACM device {} has unsupported device version {}".
-                        format(device_file, ver))
 
                 # device id unique?
                 device_id = gpio.id()
@@ -122,11 +113,14 @@ class NumatoUsbGpio:
         self._write("gpio notify off\r\n".encode())
         self._drain_ser_buffer()
         self._poll_thread.start()
-        self._id = self.id()
-        self._ver = self.ver()
-        if self._ver not in SUPPORTED_DEVICE_VERSIONS:
-            raise NumatoGpioError("Device version {} unsupported".format(
-                self._ver))
+        try:
+            self._id = self.id()
+            self._ver = self.ver()
+            self.notify(False)
+        except NumatoGpioError as err:
+            raise NumatoGpioError(
+                "Device {} doesn't answer like a numato device: {}".format(
+                    self.dev_file, err))
 
     def ver(self):
         """Return the device's version number as an integer value."""
@@ -392,10 +386,10 @@ class NumatoUsbGpio:
 
     def __str__(self):
         """Return human readable string of the device's curent state."""
-        return ("dev: {} | id: {} | iodir: 0x{:08x} | "
+        return ("dev: {} | id: {} | ver: {} | iodir: 0x{:08x} | "
                 "iomask: 0x{:08x} | state: 0x{:08x}".format(
-                    self.dev_file, self._id, self._iodir, self._iomask,
-                    self._state))
+                    self.dev_file, self._id, self._ver, self._iodir,
+                    self._iomask, self._state))
 
     def _drain_ser_buffer(self):
         while self._ser.read(DEVICE_BUFFER_SIZE):
