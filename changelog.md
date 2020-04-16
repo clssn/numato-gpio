@@ -4,10 +4,17 @@ ChangeLog
 This project is semantically versioned according to
 [SemVer](http://www.semver.org).
 
-Release 0.5.0 (Unreleased)
---------------------------
+Release 0.5.0
+-------------
 
-This version has not been released yet.
+16 April 2020
+
+This release removes the constraint to firmware version 9 of the Numato device.
+Now all devices with the same command set and word-length might be supported.
+Otherwise an error with a speaking message is raised.
+
+- Check response of some commands during discovery/construction
+- Remove strict check for firmware version 9
 
 Release 0.4.0
 -------------

@@ -54,6 +54,9 @@ def callback(port, level):
 dev.add_event_detect(14, callback, gpio.BOTH)
 dev.notify(True)
 ```
+## Versions
+
+See [changelog](changelog.md).
 
 ## Known Issues
 
