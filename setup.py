@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="numato-gpio",
-    version="0.6.0",
+    version="0.7.0.dev0",
     author="Henning Classen",
     author_email="code@clssn.de",
     description="Python API for Numato GPIO Expanders",
