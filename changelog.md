@@ -4,8 +4,15 @@ ChangeLog
 This project is semantically versioned according to
 [SemVer](http://www.semver.org).
 
-Release 0.6.0 (Unreleased)
---------------------------
+Release 0.6.0
+-------------
+
+18 April 2020
+
+This release improves stability of the system by discovering devices from a
+user defined list of device files. Instead of opening a whole generic range of
+devices, the user can now select which ones to use. The default is still
+/dev/ttyACM0 to /dev/ttyACM9 if no list is passed to the discover method.
 
 - Support discovery from selected device files
 
