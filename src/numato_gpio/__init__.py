@@ -12,8 +12,9 @@ BOTH = 3
 OUT = 0
 IN = 1
 
-ACM_DEVICE_RANGE = 10
+ACM_DEVICE_RANGE = range(10)
 DEVICE_BUFFER_SIZE = 1000000
+DEFAULT_DEVICES = ["/dev/ttyACM{}".format(i) for i in ACM_DEVICE_RANGE]
 
 devices = dict()
 
@@ -25,7 +26,7 @@ class NumatoGpioError(Exception):
 DISCOVER_LOCK = threading.RLock()
 
 
-def discover():
+def discover(dev_files=DEFAULT_DEVICES):
     """Scan a set of unix device files to find Numato USB devices.
 
     Devices are made available via the "devices" dict with the device id read
@@ -52,9 +53,8 @@ def discover():
                 del devices[dev_id]
 
         # discover newly connected
-        for i in range(ACM_DEVICE_RANGE):
+        for device_file in dev_files:
             gpio = None
-            device_file = "/dev/ttyACM{}".format(i)
             # device already registered?
             if device_file in (dev.dev_file for dev in devices.values()):
                 continue

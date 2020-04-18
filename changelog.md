@@ -7,7 +7,7 @@ This project is semantically versioned according to
 Release 0.6.0 (Unreleased)
 --------------------------
 
-This version has not been released yet.
+- Support discovery from selected device files
 
 Release 0.5.0
 -------------
