@@ -8,3 +8,6 @@ build: update-deps
 
 release: build
 	python3 -m twine upload dist/*
+
+clean:
+	rm -rf build dist

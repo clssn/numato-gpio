@@ -23,6 +23,7 @@ notifications = dev.notify  # read whether notifications are enabled or not
 - Refactor out duplicated code
 - Validate expected device responses instead of discarding read bytes
 - Re-order methods by level of abstraction
+- Add `clean` target to makefile, cleaning up package data from releases
 
 Release 0.6.0
 -------------
