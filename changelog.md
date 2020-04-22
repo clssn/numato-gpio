@@ -24,6 +24,7 @@ notifications = dev.notify  # read whether notifications are enabled or not
 - Validate expected device responses instead of discarding read bytes
 - Re-order methods by level of abstraction
 - Add `clean` target to makefile, cleaning up package data from releases
+- Add system tests for limited API tests against a connected real device
 
 Release 0.6.0
 -------------
