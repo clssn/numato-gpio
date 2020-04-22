@@ -52,7 +52,7 @@ def callback(port, level):
     )
 
 dev.add_event_detect(14, callback, gpio.BOTH)
-dev.notify(True)
+dev.notify = True
 ```
 ## Versions
 

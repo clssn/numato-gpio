@@ -7,7 +7,22 @@ This project is semantically versioned according to
 Release 0.7.0 (Unreleased)
 --------------------------
 
-This version has not been released yet.
+The following breaking change was made: Accessor functions in the NumatoUsbGpio
+class namely id(), ver(), notify(), iomask() and iodir() are turned into
+properties. Calls to these functions need to be changed to:
+
+```python
+device_version = dev.id  # read access
+dev.id = 5  # write access, permanent change of the device ID
+
+dev.notify = True  # turn on notifications
+notifications = dev.notify  # read whether notifications are enabled or not
+```
+
+- Change accessor functions into properties (breaking change)
+- Refactor out duplicated code
+- Validate expected device responses instead of discarding read bytes
+- Re-order methods by level of abstraction
 
 Release 0.6.0
 -------------

@@ -62,7 +62,7 @@ def discover(dev_files=DEFAULT_DEVICES):
                 gpio = NumatoUsbGpio(device_file)
 
                 # device id unique?
-                device_id = gpio.id()
+                device_id = gpio.id
                 if device_id in devices:
                     raise NumatoGpioError(
                         "ACM device {} has duplicate device id {}".format(
@@ -99,9 +99,6 @@ class NumatoUsbGpio:
         """Open a serial connection to a Numato device and initialize it."""
 
         self.dev_file = device
-        self._id = None
-        self._iomask = 0
-        self._iodir = 0xFFFFFFFF
         self._state = 0
         self._buf = ""
         self._poll_thread = threading.Thread(target=self._poll)
@@ -110,28 +107,40 @@ class NumatoUsbGpio:
         self._callback = [0] * 32
         self._edge = [None] * 32
         self._ser = serial.Serial(self.dev_file, 19200, timeout=1)
-        self._write("gpio notify off\r\n".encode())
+        self._write("gpio notify off\r".encode())
         self._drain_ser_buffer()
         self._poll_thread.start()
         try:
-            self._id = self.id()
-            self._ver = self.ver()
-            self.notify(False)
+            _ = self.id
+            _ = self.ver
+            self.iodir = 0xFFFFFFFF  # resets iomask as well
+            self.notify = False
         except NumatoGpioError as err:
             raise NumatoGpioError(
                 "Device {} doesn't answer like a numato device: {}".format(
                     self.dev_file, err))
 
+    @property
     def ver(self):
         """Return the device's version number as an integer value."""
-        with self._rw_lock:
-            self._ver = self._read_int32("ver")
+        if not hasattr(self, "_ver"):
+            with self._rw_lock:
+                self._ver = self._read_int32("ver")
         return self._ver
 
+    @property
     def id(self):
         """Return the device id as integer value."""
-        with self._rw_lock:
-            return self._read_int32("id get")
+        if not hasattr(self, "_id"):
+            with self._rw_lock:
+                self._id = self._read_int32("id get")
+        return self._id
+
+    @id.setter
+    def id(self, new_id):
+        """Re-program the device id to the value in new_id."""
+        self._query("id set {:08x}".format(new_id, expected=">"))
+        self._id = new_id
 
     def setup(self, port, direction):
         """Set up a single port as input or output port."""
@@ -139,7 +148,7 @@ class NumatoUsbGpio:
         with self._rw_lock:
             new_iodir = (self._iodir & ((1 << port) ^ 0xFFFFFFFF)) | (
                 (0 if not direction else 1) << port)
-            self.iodir(new_iodir)
+            self.iodir = new_iodir
 
     def cleanup(self):
         """Reset all ports to input and close the serial connection.
@@ -148,9 +157,9 @@ class NumatoUsbGpio:
         output port when re-connected to e.g. a grounded input signal.
         """
         with self._rw_lock:
-            self.iomask(0xFFFFFFFF)
-            self.iodir(0xFFFFFFFF)
-            self.notify(False)
+            self.iomask = 0xFFFFFFFF
+            self.iodir = 0xFFFFFFFF
+            self.notify = False
             self._ser.close()
 
     def write(self, port, value):
@@ -174,25 +183,39 @@ class NumatoUsbGpio:
         self._check_port_range(port)
         return 1 if self.readall() & (1 << port) else 0
 
+    @property
+    def iomask(self):
+        return self._iomask
+
+    @iomask.setter
     def iomask(self, mask):
         """Write the device's iomask to protect it from unwanted changes.
 
-        Both iodir and writeall methods change the iomask. You need to take
-        care to re-set the iomask after each call to these methods.
+        Note that the iodir method changes the iomask. Reset the iomask after
+        each call to iodir.
         """
         with self._rw_lock:
-            self._write_int32("gpio iomask {:08x}".format(mask))
+            self._query("gpio iomask {:08x}".format(mask), expected=">")
             self._iomask = mask
 
+    @property
+    def iodir(self):
+        if not hasattr(self, "_iodir"):
+            self._iodir = 0xFFFFFFFF
+        return self._iodir
+
+    @iodir.setter
     def iodir(self, direction):
         """Set the input/output port direction configuration for all ports.
 
-        Uses integer parameter direction as a single 32 bit vector.
+        Uses the integer parameter direction as a single 32 bit vector.
+        Not that this overwrites the iomask to protect the newly defined inputs
+        from being written to.
         """
         with self._rw_lock:
-            self.iomask(0xFFFFFFFF)
-            self._write_int32("gpio iodir {:08x}".format(direction))
-            self.iomask(direction ^ 0xFFFFFFFF)
+            self.iomask = 0xFFFFFFFF
+            self._query("gpio iodir {:08x}".format(direction), expected=">")
+            self.iomask = direction ^ 0xFFFFFFFF
             self._iodir = direction
 
     def readall(self):
@@ -207,19 +230,38 @@ class NumatoUsbGpio:
             self._state = response
         return self._state
 
+    @property
+    def notify(self):
+        """Read the notify setting from the device if not already known."""
+        if not hasattr(self, "_notify"):
+            query = "gpio notify get\r"
+            expected = "gpio notify "
+            with self._rw_lock:
+                self._query(query, expected=expected)
+                response = self._read_until(">")
+            if response.startswith("enabled"):
+                self._notify = True
+            elif response.startswith("disabled"):
+                self._notify = False
+            else:
+                raise NumatoGpioError(
+                    "Expected enabled or disabled, but got: {}".format(
+                        response.encode()))
+
+    @notify.setter
     def notify(self, enable):
-        """Enable or disable asynchronous notifications input port events.
+        """Enable or disable asynchronous notifications on input port events.
 
         Callback functions for individual ports can be registered using the
         add_event_detect(...) method. Events are logic level changes on input
         ports.
         """
-        query = "gpio notify {}\r\n".format("on" if enable else "off").encode()
-        response = "gpio notify {}\r\n".format(
-            "enabled" if enable else "disabled").encode()
+        query = "gpio notify {}".format("on" if enable else "off")
+        expected_response = "gpio notify {}\r\n>".format(
+            "enabled" if enable else "disabled")
         with self._rw_lock:
-            self._write(query)
-            self._read(len(query) + len(response) + 2)
+            self._query(query, expected=expected_response)
+        self._notify = enable
 
     def add_event_detect(self, port, callback, edge=BOTH):
         """Register a callback for async notifications on input port events.
@@ -247,7 +289,8 @@ class NumatoUsbGpio:
         """
         with self._rw_lock:
             self._state = bits & ~self._iodir
-            self._write_int32("gpio writeall {:08x}".format(self._state))
+            self._query("gpio writeall {:08x}".format(self._state),
+                        expected=">")
 
     def adc_read(self, adc_port):
         """Read the voltage level at a given ADC capable port.
@@ -260,9 +303,8 @@ class NumatoUsbGpio:
                 "Can't read analog value from port {} - "
                 "only ports 1 to 7 are ADC capable.".format(adc_port))
         with self._rw_lock:
-            query = ("adc read {}\r\n".format(adc_port)).encode()
-            self._write(query)
-            self._read(len(query) + 1)
+            query = "adc read {}\r".format(adc_port)
+            self._query(query)
             resp = self._read_until(">")
             try:
                 return int(resp[:resp.find("\r")])
@@ -271,27 +313,46 @@ class NumatoUsbGpio:
                     "Query '{}' returned unexpected result {}. "
                     "Expected 10 bit decimal integer.".format(query, resp))
 
-    def _write_int32(self, query):
-        query = (query + "\r\n").encode()
+    def _query(self, query, expected=None):
         with self._rw_lock:
-            self._write(query)
-            self._read(len(query) + 2)
+            self._write("{}\r".format(query).encode())
+            expected_echo = "{}\r\n".format(query)
+            try:
+                self._read_string(expected_echo)
+            except NumatoGpioError as err:
+                raise NumatoGpioError(
+                    "Query '{}' returned unexpected echo {}".format(
+                        query, str(err)))
+            if not expected:
+                return
+            try:
+                self._read_string(expected)
+            except NumatoGpioError as err:
+                raise NumatoGpioError(
+                    "Query '{}' returned unexpected response {}".format(
+                        query, str(err)))
+
+    def _read_string(self, expected):
+        string = self._read(len(expected.encode()))
+        if string != expected:
+            raise NumatoGpioError(string)
 
     def _read_int32(self, query):
-        query = (query + "\r\n").encode()
         with self._rw_lock:
-            self._write(query)
-            self._read(len(query) + 1)
+            self._query(query)
             response = self._read(8)
             try:
                 val = int(response, 16)
+                self._read_string("\r\n>")
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
                     "Expected 32 bit hexadecimal integer.".format(
                         query, response))
-            self._read(3)
-
+            except NumatoGpioError as err:
+                raise NumatoGpioError(
+                    "Unexpected string {} after successful query {}".format(
+                        str(err), query))
         return val
 
     def _write(self, query):
@@ -388,8 +449,8 @@ class NumatoUsbGpio:
         """Return human readable string of the device's curent state."""
         return ("dev: {} | id: {} | ver: {} | iodir: 0x{:08x} | "
                 "iomask: 0x{:08x} | state: 0x{:08x}".format(
-                    self.dev_file, self._id, self._ver, self._iodir,
-                    self._iomask, self._state))
+                    self.dev_file, self.id, self.ver, self.iodir, self.iomask,
+                    self._state))
 
     def _drain_ser_buffer(self):
         while self._ser.read(DEVICE_BUFFER_SIZE):
