@@ -7,6 +7,11 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
+Release 0.8.0 (Unreleased)
+--------------------------
+
+This version has not been released yet.
+
 Release 0.7.0
 -------------
 
