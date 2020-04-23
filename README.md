@@ -10,6 +10,8 @@ expanders.
 * Read integer values from ADC input ports (1 - 7)
 * Register a callback for input port events (edge detection)
 
+See the [changelog](changelog.md) for details on the releases.
+
 ## Usage
 
 Install latest development version:

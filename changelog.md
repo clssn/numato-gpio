@@ -1,11 +1,17 @@
-ChangeLog
-=========
+Change Log
+==========
 
 This project is semantically versioned according to
-[SemVer](http://www.semver.org).
+[SemVer](http://www.semver.org) with one exception: Until the first major
+release, breaking changes will increment the minor version only. This is likely
+to happen quite often until things have settled down and a certain degree of
+maturity is established.
 
-Release 0.7.0 (Unreleased)
---------------------------
+Release 0.7.0
+-------------
+
+While this release is a thorough refactoring of most parts of the code, the
+number of breaking changes has been kept to a minimum.
 
 The following breaking change was made: Accessor functions in the NumatoUsbGpio
 class namely id(), ver(), notify(), iomask() and iodir() are turned into
