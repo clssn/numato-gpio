@@ -7,10 +7,10 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
-Release 0.8.0 (Unreleased)
+Release 0.7.1 (Unreleased)
 --------------------------
 
-This version has not been released yet.
+- Fix crash during cleanup in case of a Serial communication failure
 
 Release 0.7.0
 -------------

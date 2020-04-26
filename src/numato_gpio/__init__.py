@@ -85,6 +85,8 @@ def cleanup():
     for dev_id in list(devices.keys()):
         try:
             devices[dev_id].cleanup()
+        except NumatoGpioError:
+            pass  # continue removing other devices
         finally:
             del devices[dev_id]
 
