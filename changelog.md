@@ -7,8 +7,13 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
-Release 0.7.1 (Unreleased)
---------------------------
+Release 0.7.1
+-------------
+
+This release fixes an error in the cleanup implementation. When a device can't
+be properly cleaned  (e.g. because it's disconnected), its exception was not
+handled, but fell through to the caller. So remaining devices could not be
+cleaned up anymore.
 
 - Fix crash during cleanup in case of a Serial communication failure
 
