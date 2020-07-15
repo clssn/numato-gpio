@@ -12,7 +12,7 @@ expanders.
 
 See the [changelog](changelog.md) for details on the releases.
 
-## Usage
+## Installation
 
 Install latest development version:
 
@@ -22,7 +22,23 @@ Install latest release:
 
     pip install --user numato-gpio
 
-Once installed, the API can be used like:
+## Usage CLI
+
+Test whether your devices can be found running the command-line interface like
+`python3 -m numato_gpio`. Remember to have your user in the `dialout` group,
+since the devices are registered as /dev/ttyACMx (i.e. modem devices).
+
+Expected output:
+
+```
+❯ python3 -m numato_gpio
+dev: /dev/ttyACM0 | id: 0 | ver: 9 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+dev: /dev/ttyACM1 | id: 1 | ver: 9 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+```
+
+## Usage API
+
+The API can be used like:
 
 ```python
 import numato_gpio as gpio
