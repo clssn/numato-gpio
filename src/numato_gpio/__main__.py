@@ -6,6 +6,7 @@ def main():
     """Print out information about all discovered devices."""
     try:
         discover()
+        print("Discovered devices: {}".format("(None)" if not devices else ""))
         for device in devices.values():
             print(device)
     finally:
