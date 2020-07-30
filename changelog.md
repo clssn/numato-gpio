@@ -7,10 +7,16 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
-Release 0.8.0 (Unreleased)
---------------------------
+Release 0.8.0
+-------------
 
-This version has not been released yet.
+This version is released to relax the pyserial dependency in order to avoid
+problems in the home-assistant project when the new pip resolver is in effect.
+Additional features:
+
+- Add a very basic unit-test against a pyserial mockup
+- Configure tox to run the tests in a virtualenv
+- Document CLI usage and improve CLI output
 
 Release 0.7.1
 -------------
