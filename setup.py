@@ -15,7 +15,7 @@ setuptools.setup(
     url="https://github.com/clssn/numato-gpio",
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
-    install_requires=["pyserial==3.1.1"],
+    install_requires=["pyserial>=3.1.1"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
