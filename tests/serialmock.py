@@ -8,6 +8,7 @@ def gen_serial(eol):
                 b'gpio notify off\r': b'gpio notify disabled\n>',
                 b'id get\r': b'00004711\n>',
                 b'ver\r': b'00000008\n>',
+                b'gpio readall\r': b'00000000\n>',
                 b'gpio iomask ffffffff\r': b'>',
                 b'gpio iomask 00000000\r': b'>',
                 b'gpio iodir ffffffff\r': b'>',

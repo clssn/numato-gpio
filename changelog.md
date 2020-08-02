@@ -7,6 +7,10 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
+Release 0.10.0 (not yet released)
+---------------------------------
+
+- Support 8, 16, 32, 64 and 128 port devices
 Release 0.9.0
 -------------
 

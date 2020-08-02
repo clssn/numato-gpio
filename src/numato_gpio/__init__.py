@@ -1,4 +1,4 @@
-"""Python API for 32 Port Numato USB GPIO devices."""
+"""Python API for Numato USB GPIO devices."""
 
 import serial
 import threading
@@ -106,16 +106,18 @@ class NumatoUsbGpio:
         self._poll_thread = threading.Thread(target=self._poll, daemon=True)
         self._rw_lock = threading.RLock()
         self._can_read = threading.Condition()
-        self._callback = [0] * 32
-        self._edge = [None] * 32
         self._ser = serial.Serial(self.dev_file, 19200, timeout=1)
         self._write("gpio notify off\r".encode())
         self._drain_ser_buffer()
         self._poll_thread.start()
+        self._MASK_ALL_PORTS = 2**self.ports - 1
+        self._HEX_DIGITS = self.ports // 4
+        self._callback = [0] * self.ports
+        self._edge = [None] * self.ports
         try:
             _ = self.id
             _ = self.ver
-            self.iodir = 0xFFFFFFFF  # resets iomask as well
+            self.iodir = self._MASK_ALL_PORTS  # resets iomask as well
             self.notify = False
         except NumatoGpioError as err:
             raise NumatoGpioError(
@@ -127,7 +129,7 @@ class NumatoUsbGpio:
         """Return the device's version number as an integer value."""
         if not hasattr(self, "_ver"):
             with self._rw_lock:
-                self._ver = self._read_int32("ver")
+                self._ver = self._read_int("ver", 32)
         return self._ver
 
     @property
@@ -135,7 +137,7 @@ class NumatoUsbGpio:
         """Return the device id as integer value."""
         if not hasattr(self, "_id"):
             with self._rw_lock:
-                self._id = self._read_int32("id get")
+                self._id = self._read_int("id get", 32)
         return self._id
 
     @id.setter
@@ -144,12 +146,32 @@ class NumatoUsbGpio:
         self._query("id set {:08x}".format(new_id), expected=">")
         self._id = new_id
 
+    @property
+    def ports(self):
+        """Determine and return the number of ports of the Numato device.
+
+        Devices with 8, 16, 32, 64 and 128 ports are available.
+        The determined value is cached assuming the hardware doesn't change.
+
+                Returns:
+                        (int): Number of ports
+        """
+        if not hasattr(self, '__ports'):
+            eol = "\n"
+            self._query("gpio readall")
+            response = self._read_until(eol)
+            self._read_until(">")
+            hex_digits = (len(response) - len(eol))
+            self.__ports = hex_digits * 4
+        return self.__ports
+
     def setup(self, port, direction):
         """Set up a single port as input or output port."""
         self._check_port_range(port)
         with self._rw_lock:
-            new_iodir = (self._iodir & ((1 << port) ^ 0xFFFFFFFF)) | (
-                (0 if not direction else 1) << port)
+            new_iodir = (self._iodir &
+                         ((1 << port) ^ self._MASK_ALL_PORTS)) | (
+                             (0 if not direction else 1) << port)
             self.iodir = new_iodir
 
     def cleanup(self):
@@ -159,8 +181,8 @@ class NumatoUsbGpio:
         output port when re-connected to e.g. a grounded input signal.
         """
         with self._rw_lock:
-            self.iomask = 0xFFFFFFFF
-            self.iodir = 0xFFFFFFFF
+            self.iomask = self._MASK_ALL_PORTS
+            self.iodir = self._MASK_ALL_PORTS
             self.notify = False
             self._ser.close()
 
@@ -173,8 +195,9 @@ class NumatoUsbGpio:
         with self._rw_lock:
             if (self._iodir >> port) & 1:
                 raise NumatoGpioError("Can't write to input port")
-            self._state = (self._state & ((1 << port) ^ 0xFFFFFFFF)) | (
-                (0 if not value else 1) << port)
+            self._state = (self._state &
+                           ((1 << port) ^ self._MASK_ALL_PORTS)) | (
+                               (0 if not value else 1) << port)
             self.writeall(self._state)
 
     def read(self, port):
@@ -188,13 +211,13 @@ class NumatoUsbGpio:
     def adc_read(self, adc_port):
         """Read the voltage level at a given ADC capable port.
 
-        Ports 1 to 7 are ADC capable if configured as input. ADC values range
-        from 0 (0V) to 1023 (3.3V). Note that ADCs have a certain tolerance.
+        Available ADC ports and their resolutions are listed in the
+        ADC_PORTS and ADC_RESOLUTION class variables.
         """
-        if adc_port not in range(1, 8):
+        if adc_port not in self.ADC_PORTS[self.ports]:
             raise NumatoGpioError(
                 "Can't read analog value from port {} - "
-                "only ports 1 to 7 are ADC capable.".format(adc_port))
+                "that port does not provide an ADC.".format(adc_port))
         with self._rw_lock:
             query = "adc read {}".format(adc_port)
             self._query(query)
@@ -275,38 +298,42 @@ class NumatoUsbGpio:
         each call to iodir.
         """
         with self._rw_lock:
-            self._query("gpio iomask {:08x}".format(mask), expected=">")
+            self._query("gpio iomask {:0{dgts}x}".format(
+                mask, dgts=self._HEX_DIGITS),
+                        expected=">")
             self._iomask = mask
 
     @property
     def iodir(self):
         if not hasattr(self, "_iodir"):
-            self._iodir = 0xFFFFFFFF
+            self._iodir = self._MASK_ALL_PORTS
         return self._iodir
 
     @iodir.setter
     def iodir(self, direction):
         """Set the input/output port direction configuration for all ports.
 
-        Uses the integer parameter direction as a single 32 bit vector.
-        Not that this overwrites the iomask to protect the newly defined inputs
-        from being written to.
+        Uses the integer parameter direction as a bit vector with one bit per
+        port. Not that this overwrites the iomask to protect the newly defined
+        inputs from being written to.
         """
         with self._rw_lock:
-            self.iomask = 0xFFFFFFFF
-            self._query("gpio iodir {:08x}".format(direction), expected=">")
-            self.iomask = direction ^ 0xFFFFFFFF
+            self.iomask = self._MASK_ALL_PORTS
+            self._query("gpio iodir {:0{dgts}x}".format(direction,
+                                                        dgts=self._HEX_DIGITS),
+                        expected=">")
+            self.iomask = direction ^ self._MASK_ALL_PORTS
             self._iodir = direction
 
     def readall(self):
-        """Read all 32 bits at once.
+        """Read all ports at once.
 
         Returns a single int value to be interpreted as bit vector. Note that
         only the input ports may make sense. The output port values may or may
         not reflect the previously written state.
         """
         with self._rw_lock:
-            response = self._read_int32("gpio readall")
+            response = self._read_int("gpio readall", self.ports)
             self._state = response
         return self._state
 
@@ -318,7 +345,8 @@ class NumatoUsbGpio:
         """
         with self._rw_lock:
             self._state = bits & ~self._iodir
-            self._query("gpio writeall {:08x}".format(self._state),
+            self._query("gpio writeall {:0{dgts}x}".format(
+                self._state, dgts=self._HEX_DIGITS),
                         expected=">")
 
     def _query(self, query, expected=None):
@@ -353,18 +381,18 @@ class NumatoUsbGpio:
         if string != expected:
             raise NumatoGpioError(string)
 
-    def _read_int32(self, query):
+    def _read_int(self, query, bits):
         with self._rw_lock:
             self._query(query)
-            response = self._read(8)
+            response = self._read(bits // 4)
             try:
                 val = int(response, 16)
                 self._read_string("\n>")
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
-                    "Expected 32 bit hexadecimal integer.".format(
-                        query, response))
+                    "Expected {bits} bit hexadecimal integer.".format(
+                        query, response, bits=bits))
             except NumatoGpioError as err:
                 raise NumatoGpioError(
                     "Unexpected string {} after successful query {}".format(
@@ -420,7 +448,7 @@ class NumatoUsbGpio:
                     self._ser.read(1)
                     previous_value = int(self._ser.read(8), 16)
                     self._ser.read(1)
-                    self._ser.read(8)  # read and discard iodir
+                    self._ser.read(self._HEX_DIGITS)  # read and discard iodir
                     return current_value, previous_value, None
 
                 current_value, previous_value, buf = read_notification()
@@ -460,7 +488,119 @@ class NumatoUsbGpio:
 
     def __str__(self):
         """Return human readable string of the device's curent state."""
-        return ("dev: {} | id: {} | ver: {} | iodir: 0x{:08x} | "
-                "iomask: 0x{:08x} | state: 0x{:08x}".format(
-                    self.dev_file, self.id, self.ver, self.iodir, self.iomask,
-                    self._state))
+        return (
+            "dev: {} | id: {} | ver: {} | ports: {} | iodir: 0x{:0{dgts}x} | "
+            "iomask: 0x{:0{dgts}x} | state: 0x{:0{dgts}x}".format(
+                self.dev_file,
+                self.id,
+                self.ver,
+                self.ports,
+                self.iodir,
+                self.iomask,
+                self._state,
+                dgts=self._HEX_DIGITS))
+
+    ADC_RESOLUTION = {
+        8: 10,
+        16: 10,
+        32: 10,
+        64: 12,
+        128: 12,
+    }
+
+    ADC_PORTS = {
+        8: {
+            0: "ADC0",
+            1: "ADC1",
+            2: "ADC2",
+            3: "ADC3",
+            6: "ADC4",
+            7: "ADC5",
+        },
+        16: {
+            0: "ADC0",
+            1: "ADC1",
+            2: "ADC2",
+            3: "ADC3",
+            4: "ADC4",
+            5: "ADC5",
+            6: "ADC6",
+        },
+        32: {
+            1: "ADC1",
+            2: "ADC2",
+            3: "ADC3",
+            4: "ADC4",
+            5: "ADC5",
+            6: "ADC6",
+            7: "ADC7",
+        },
+        64: {
+            0: "ADC0",
+            1: "ADC1",
+            2: "ADC2",
+            3: "ADC3",
+            4: "ADC4",
+            5: "ADC5",
+            6: "ADC6",
+            7: "ADC7",
+            8: "ADC8",
+            9: "ADC9",
+            10: "ADC10",
+            11: "ADC11",
+            12: "ADC12",
+            13: "ADC13",
+            14: "ADC14",
+            15: "ADC15",
+            16: "ADC16",
+            17: "ADC17",
+            18: "ADC18",
+            19: "ADC19",
+            20: "ADC20",
+            21: "ADC21",
+            22: "ADC22",
+            23: "ADC23",
+            24: "ADC24",
+            25: "ADC25",
+            26: "ADC26",
+            27: "ADC27",
+            28: "ADC28",
+            29: "ADC29",
+            30: "ADC30",
+            31: "ADC31",
+        },
+        128: {
+            0: "ADC0",
+            1: "ADC1",
+            2: "ADC2",
+            3: "ADC3",
+            4: "ADC4",
+            5: "ADC5",
+            6: "ADC6",
+            7: "ADC7",
+            8: "ADC8",
+            9: "ADC9",
+            10: "ADC10",
+            11: "ADC11",
+            12: "ADC12",
+            13: "ADC13",
+            14: "ADC14",
+            15: "ADC15",
+            16: "ADC16",
+            17: "ADC17",
+            18: "ADC18",
+            19: "ADC19",
+            20: "ADC20",
+            21: "ADC21",
+            22: "ADC22",
+            23: "ADC23",
+            24: "ADC24",
+            25: "ADC25",
+            26: "ADC26",
+            27: "ADC27",
+            28: "ADC28",
+            29: "ADC29",
+            30: "ADC30",
+            31: "ADC31",
+        },
+    }

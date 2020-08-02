@@ -2,9 +2,8 @@
 
 # Python API for Numato GPIO Expanders
 
-This Python API can be used to control [Numato 32 Port USB
-GPIO](https://numato.com/product/32-channel-usb-gpio-module-with-analog-inputs)
-expanders.
+This Python API can be used to control [Numato USB
+GPIO expanders](https://numato.com/product/32-channel-usb-gpio-module-with-analog-inputs).
 
 * Configure ports as input or output port
 * Write to output ports
@@ -34,8 +33,8 @@ Expected output:
 
 ```
 ❯ python3 -m numato_gpio
-dev: /dev/ttyACM0 | id: 0 | ver: 9 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
-dev: /dev/ttyACM1 | id: 1 | ver: 9 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+dev: /dev/ttyACM0 | id: 0 | ver: 9 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+dev: /dev/ttyACM1 | id: 1 | ver: 9 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
 ```
 
 ## Usage API
