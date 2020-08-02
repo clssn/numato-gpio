@@ -141,7 +141,7 @@ class NumatoUsbGpio:
     @id.setter
     def id(self, new_id):
         """Re-program the device id to the value in new_id."""
-        self._query("id set {:08x}".format(new_id, expected=">"))
+        self._query("id set {:08x}".format(new_id), expected=">")
         self._id = new_id
 
     def setup(self, port, direction):
