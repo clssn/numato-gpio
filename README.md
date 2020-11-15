@@ -1,3 +1,5 @@
+![Upload Python Package](https://github.com/clssn/numato-gpio/workflows/Upload%20Python%20Package/badge.svg)
+
 # Python API for Numato GPIO Expanders
 
 This Python API can be used to control [Numato 32 Port USB
