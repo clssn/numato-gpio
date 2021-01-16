@@ -78,6 +78,10 @@ dev.notify = True
 
 See [changelog](changelog.md).
 
+## Troubleshooting
+
+In case your device can't be discovered or you even get an error message or
+stacktrace, please follow the [troubleshooting guide](doc/troubleshooting.md).
 ## Known Issues
 
 Though the code works well in a [Home Assistant](https://home-assistant.io)
