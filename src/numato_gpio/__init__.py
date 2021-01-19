@@ -103,7 +103,7 @@ class NumatoUsbGpio:
         self.dev_file = device
         self._state = 0
         self._buf = ""
-        self._poll_thread = threading.Thread(target=self._poll)
+        self._poll_thread = threading.Thread(target=self._poll, daemon=True)
         self._rw_lock = threading.RLock()
         self._can_read = threading.Condition()
         self._callback = [0] * 32
@@ -200,7 +200,7 @@ class NumatoUsbGpio:
             self._query(query)
             resp = self._read_until(">")
             try:
-                return int(resp[:resp.find("\r")])
+                return int(resp[:resp.find("\n")])
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
@@ -233,7 +233,7 @@ class NumatoUsbGpio:
         ports.
         """
         query = "gpio notify {}".format("on" if enable else "off")
-        expected_response = "gpio notify {}\r\n>".format(
+        expected_response = "gpio notify {}\n>".format(
             "enabled" if enable else "disabled")
         with self._rw_lock:
             self._query(query, expected=expected_response)
@@ -322,7 +322,7 @@ class NumatoUsbGpio:
     def _query(self, query, expected=None):
         with self._rw_lock:
             self._write("{}\r".format(query).encode())
-            expected_echo = "{}\r\n".format(query)
+            expected_echo = "{}\n".format(query)
             try:
                 self._read_string(expected_echo)
             except NumatoGpioError as err:
@@ -357,7 +357,7 @@ class NumatoUsbGpio:
             response = self._read(8)
             try:
                 val = int(response, 16)
-                self._read_string("\r\n>")
+                self._read_string("\n>")
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
@@ -398,18 +398,19 @@ class NumatoUsbGpio:
             while self._ser and self._ser.is_open:
 
                 def read_notification():
-                    buf = self._ser.read(1).decode()
+                    buf = self._ser.read(1).decode().replace("\r", "\n")
                     if not buf:
                         return None, None, buf
-                    if buf != "\r":
+                    if buf != "\n":
                         return None, None, buf
                     # could be a notification
-                    buf += self._ser.read(1).decode()
-                    if not buf.endswith("\r\n"):
+                    buf += self._ser.read(1).decode().replace("\r", "\n")
+                    if not buf.endswith("\n\n"):
                         return None, None, buf
+                    buf = buf.replace("\n\n", "\n")
                     # could still be a notification
-                    buf += self._ser.read(1).decode()
-                    if not buf.endswith("\r\n#"):
+                    buf += self._ser.read(1).decode().replace("\r", "\n")
+                    if not buf.endswith("\n#"):
                         return None, None, buf
                     # notification detected!
                     self._ser.read(1)
