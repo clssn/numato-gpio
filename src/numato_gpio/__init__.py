@@ -196,7 +196,7 @@ class NumatoUsbGpio:
                 "Can't read analog value from port {} - "
                 "only ports 1 to 7 are ADC capable.".format(adc_port))
         with self._rw_lock:
-            query = "adc read {}\r".format(adc_port)
+            query = "adc read {}".format(adc_port)
             self._query(query)
             resp = self._read_until(">")
             try:
