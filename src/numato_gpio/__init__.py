@@ -210,7 +210,7 @@ class NumatoUsbGpio:
     def notify(self):
         """Read the notify setting from the device if not already known."""
         if not hasattr(self, "_notify"):
-            query = "gpio notify get\r"
+            query = "gpio notify get"
             expected = "gpio notify "
             with self._rw_lock:
                 self._query(query, expected=expected)
