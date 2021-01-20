@@ -7,6 +7,20 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
+Release 0.9.0
+-------------
+
+This release extends the support to devices with different end-of-line responses.
+
+- Support end-of-line responses cr, lf and lfcr in addition to crlf
+- New troubleshooting document to streamline support requests
+- Minor bug fixes
+
+Release 0.8.1
+-------------
+
+This release adds a github workflow to deploy release packages on PyPI.
+
 Release 0.8.0
 -------------
 

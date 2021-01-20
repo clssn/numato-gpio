@@ -74,7 +74,7 @@ def callback(port, level):
 dev.add_event_detect(14, callback, gpio.BOTH)
 dev.notify = True
 ```
-## Versions
+## Release Versions
 
 See [changelog](changelog.md).
 
@@ -82,6 +82,7 @@ See [changelog](changelog.md).
 
 In case your device can't be discovered or you even get an error message or
 stacktrace, please follow the [troubleshooting guide](doc/troubleshooting.md).
+
 ## Known Issues
 
 Though the code works well in a [Home Assistant](https://home-assistant.io)
