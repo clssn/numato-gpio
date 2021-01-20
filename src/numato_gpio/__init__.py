@@ -230,8 +230,17 @@ class NumatoUsbGpio:
                     "Expected 10 bit decimal integer.".format(query, resp))
 
     @property
+    def can_notify(self):
+        """Determine whether notifications are supported by the particular device."""
+        return self.ports != 8
+
+    @property
     def notify(self):
         """Read the notify setting from the device if not already known."""
+        if not self.can_notify:
+            # notifications not supported on 8 port devices
+            return False
+
         if not hasattr(self, "_notify"):
             query = "gpio notify get"
             expected = "gpio notify "
@@ -257,6 +266,10 @@ class NumatoUsbGpio:
         add_event_detect(...) method. Events are logic level changes on input
         ports.
         """
+        if not self.can_notify:
+            # notifications not supported on 8 port devices
+            return
+
         query = "gpio notify {}".format("on" if enable else "off")
         expected_response = "gpio notify {}\n>".format(
             "enabled" if enable else "disabled")

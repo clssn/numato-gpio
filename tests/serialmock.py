@@ -1,17 +1,22 @@
+import math
 import threading
 
 def gen_serial(eol):
     class SerialMock:
         """Mockup for a pyserial Serial object connected to a Numato USB IO expander device."""
+        ports = None
         def respond(self, input):
             responses = {
-                b'gpio notify off\r': b'gpio notify disabled\n>',
+                b'gpio notify off\r': b'gpio notify disabled\n>' if self.ports != 8 else b'',
                 b'id get\r': b'00004711\n>',
                 b'ver\r': b'00000008\n>',
-                b'gpio readall\r': b'00000000\n>',
-                b'gpio iomask ffffffff\r': b'>',
-                b'gpio iomask 00000000\r': b'>',
-                b'gpio iodir ffffffff\r': b'>',
+                b'gpio readall\r': f'{"0"*(self.ports//4)}\n>'.encode(),
+                f'gpio iomask {"0"*(self.ports//4)}\r'.encode(): b'>',
+                f'gpio iomask {"f"*(self.ports//4)}\r'.encode(): b'>',
+                f'gpio iomask {"F"*(self.ports//4)}\r'.encode(): b'>',
+                f'gpio iodir {"0"*(self.ports//4)}\r'.encode(): b'>',
+                f'gpio iodir {"f"*(self.ports//4)}\r'.encode(): b'>',
+                f'gpio iodir {"F"*(self.ports//4)}\r'.encode(): b'>',
             }
             return responses[input].decode().replace("\n", self.eol).encode()
 
