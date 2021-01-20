@@ -224,6 +224,8 @@ class NumatoUsbGpio:
                     "Expected enabled or disabled, but got: {}".format(
                         response.encode()))
 
+        return self._notify
+
     @notify.setter
     def notify(self, enable):
         """Enable or disable asynchronous notifications on input port events.
