@@ -465,7 +465,7 @@ class NumatoUsbGpio:
                     return current_value, previous_value, None
 
                 current_value, previous_value, buf = read_notification()
-                if current_value and previous_value:
+                if current_value is not None and previous_value is not None:
                     edges = current_value ^ previous_value
 
                     def logic_level(port):
