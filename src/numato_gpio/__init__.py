@@ -156,14 +156,14 @@ class NumatoUsbGpio:
                 Returns:
                         (int): Number of ports
         """
-        if not hasattr(self, '__ports'):
+        if not hasattr(self, '_ports'):
             eol = "\n"
             self._query("gpio readall")
             response = self._read_until(eol)
             self._read_until(">")
             hex_digits = (len(response) - len(eol))
-            self.__ports = hex_digits * 4
-        return self.__ports
+            self._ports = hex_digits * 4
+        return self._ports
 
     def setup(self, port, direction):
         """Set up a single port as input or output port."""
