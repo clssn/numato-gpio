@@ -457,9 +457,9 @@ class NumatoUsbGpio:
                         return None, None, buf
                     # notification detected!
                     self._ser.read(1)
-                    current_value = int(self._ser.read(8), 16)
+                    current_value = int(self._ser.read(self.ports//4), 16)
                     self._ser.read(1)
-                    previous_value = int(self._ser.read(8), 16)
+                    previous_value = int(self._ser.read(self.ports//4), 16)
                     self._ser.read(1)
                     self._ser.read(self._HEX_DIGITS)  # read and discard iodir
                     return current_value, previous_value, None
@@ -479,7 +479,7 @@ class NumatoUsbGpio:
                         return (lv and self._edge[port] in [RISING, BOTH]) or (
                             not lv and self._edge[port] in [FALLING, BOTH])
 
-                    for port in range(32):
+                    for port in range(self.ports):
                         if edge_detected(port) and edge_selected(port):
                             self._callback[port](port, logic_level(port))
                 elif buf:
@@ -492,7 +492,7 @@ class NumatoUsbGpio:
             pass  # ends the polling loop and its thread
 
     def _check_port_range(self, port):
-        if port not in range(32):
+        if port not in range(self.ports):
             raise NumatoGpioError("Port number {} out of range.".format(port))
 
     def _drain_ser_buffer(self):
