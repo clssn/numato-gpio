@@ -92,3 +92,24 @@ issues are only the ones the author is aware of:
 * Some docstrings are hard to understand
 * Device discovery/registry as module-global dict is sub-optimal
 * Only `/dev/ACMx` devices are scanned which were mapped on the author's Linux
+
+## System Tests
+
+Unit tests in the `tests` directory are using a device mockup which mimicks
+a Numato device's responses as far as known at the state of development.
+
+System tests in the `sys_tests` folder are meant to be run using a real device
+and will just fail, if no device is connected. They are an important complement
+to unit tests, because they are *the real thing* and might behave differently
+than the mockup device for the unit tests.
+
+If you consider to run system tests you should be aware that it may be dangerous
+running them.
+
+---
+**WARNING**
+
+Only run the system tests with *gpio ports disconnected*! You otherwise risk
+a short circuit which may lead to damage or destruction of your device or
+even fire.
+---
