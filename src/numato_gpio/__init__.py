@@ -227,7 +227,8 @@ class NumatoUsbGpio:
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
-                    "Expected 10 bit decimal integer.".format(query, resp))
+                    "Expected 10 bit decimal integer.".format(
+                        repr(query), repr(resp)))
 
     @property
     def can_notify(self):
@@ -254,7 +255,7 @@ class NumatoUsbGpio:
             else:
                 raise NumatoGpioError(
                     "Expected enabled or disabled, but got: {}".format(
-                        response.encode()))
+                        repr(response)))
 
         return self._notify
 
@@ -405,16 +406,16 @@ class NumatoUsbGpio:
                 self._read_string(expected_echo)
             except NumatoGpioError as err:
                 raise NumatoGpioError(
-                    "Query '{}' returned unexpected echo {}".format(
-                        query, str(err)))
+                    "Query {} returned unexpected echo {}".format(
+                        repr(query), repr(str(err))))
             if not expected:
                 return
             try:
                 self._read_string(expected)
             except NumatoGpioError as err:
                 raise NumatoGpioError(
-                    "Query '{}' returned unexpected response {}".format(
-                        query, str(err)))
+                    "Query {} returned unexpected response {}".format(
+                        repr(query), repr(str(err))))
 
     def _write(self, query):
         try:
@@ -439,12 +440,12 @@ class NumatoUsbGpio:
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
-                    "Expected {bits} bit hexadecimal integer.".format(
-                        query, response, bits=bits))
+                    "Expected a {bits} bit integer in hexadecimal notation.".
+                    format(repr(query), repr(response), bits=bits))
             except NumatoGpioError as err:
                 raise NumatoGpioError(
                     "Unexpected string {} after successful query {}".format(
-                        str(err), query))
+                        repr(str(err)), repr(query)))
         return val
 
     def _read_until(self, end_str):
