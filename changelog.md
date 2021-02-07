@@ -12,6 +12,7 @@ Release 0.10.0 (not yet released)
 
 - Support 8, 16, 32, 64 and 128 port devices
 - Add unit tests covering all ports and eol-sequences including notifications
+- Fix notifications which in certain cases would remain undetected
 
 Release 0.9.0
 -------------

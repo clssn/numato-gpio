@@ -33,8 +33,8 @@ Expected output:
 
 ```
 ❯ python3 -m numato_gpio
-dev: /dev/ttyACM0 | id: 0 | ver: 9 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
-dev: /dev/ttyACM1 | id: 1 | ver: 9 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+dev: /dev/ttyACM0 | id: 0 | ver: 9 | ports: 32 | eol: '\r\n' | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+dev: /dev/ttyACM1 | id: 1 | ver: 9 | ports: 32 | eol: '\r\n' | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
 ```
 
 ## Usage API

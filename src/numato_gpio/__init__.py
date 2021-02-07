@@ -110,6 +110,7 @@ class NumatoUsbGpio:
         self._write("gpio notify off\r".encode())
         self._drain_ser_buffer()
         self._poll_thread.start()
+        self._detect_eol()
         self._MASK_ALL_PORTS = 2**self.ports - 1
         self._HEX_DIGITS = self.ports // 4
         self._callback = [0] * self.ports
@@ -157,11 +158,10 @@ class NumatoUsbGpio:
                         (int): Number of ports
         """
         if not hasattr(self, '_ports'):
-            eol = "\n"
             self._query("gpio readall")
-            response = self._read_until(eol)
+            response = self._read_until(self._eol)
             self._read_until(">")
-            hex_digits = (len(response) - len(eol))
+            hex_digits = len(response) - len(self._eol)
             self._ports = hex_digits * 4
         return self._ports
 
@@ -223,7 +223,7 @@ class NumatoUsbGpio:
             self._query(query)
             resp = self._read_until(">")
             try:
-                return int(resp[:resp.find("\n")])
+                return int(resp[:resp.find(self._eol)])
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
@@ -271,8 +271,8 @@ class NumatoUsbGpio:
             return
 
         query = "gpio notify {}".format("on" if enable else "off")
-        expected_response = "gpio notify {}\n>".format(
-            "enabled" if enable else "disabled")
+        expected_response = "gpio notify {}{}>".format(
+            "enabled" if enable else "disabled", self._eol)
         with self._rw_lock:
             self._query(query, expected=expected_response)
         self._notify = enable
@@ -361,11 +361,46 @@ class NumatoUsbGpio:
             self._query("gpio writeall {:0{dgts}x}".format(
                 self._state, dgts=self._HEX_DIGITS),
                         expected=">")
+    def _detect_eol(self):
+        """Numato devices respond with different end-of-line (eol) sequences.
+
+        This function detects the eol-sequence the current device uses, using
+        the response of the `id get\r` command. Note that this python module
+        always uses the `\r` eol-sequence to terminate *queries*. All other
+        sequences lead to unconventional eol-sequences in the devices'
+        responses.
+
+        Though currently only the `\r\n` and \n\r` sequences have been
+        experienced with Numato devices, this module also supports solo `\r`
+        and `\n` eol-sequences.
+
+        This detection is based on the assumption that all commands
+        consequently respond using the same eol-sequence.
+
+        Important: This function needs to be called before notifications are
+                   enabled. Because the notification detection relies on the
+                   knowledge of the devices proper eol-sequence.
+        """
+        if hasattr(self, "_notify") and self._notify:
+            raise NumatoGpioError(
+                "Can't reliably detect the end-of-line-sequence "
+                "as notifications are already enabled.")
+
+        # initial assumption required for basic operation of the reader thread
+        self._eol = "\r\n"
+
+        with self._rw_lock:
+            self._write("{}\r".format("id get").encode())
+            response = self._read_until(">")
+            eol = response[-3:-1]
+            if eol[0] not in ["\r", "\n"]:
+                eol = eol[1]
+            self._eol = eol
 
     def _query(self, query, expected=None):
         with self._rw_lock:
             self._write("{}\r".format(query).encode())
-            expected_echo = "{}\n".format(query)
+            expected_echo = "{}{}".format(query, self._eol)
             try:
                 self._read_string(expected_echo)
             except NumatoGpioError as err:
@@ -400,7 +435,7 @@ class NumatoUsbGpio:
             response = self._read(bits // 4)
             try:
                 val = int(response, 16)
-                self._read_string("\n>")
+                self._read_string("{}>".format(self._eol))
             except ValueError:
                 raise NumatoGpioError(
                     "Query '{}' returned unexpected result {}. "
@@ -438,28 +473,40 @@ class NumatoUsbGpio:
         reading.
         """
         try:
+            self._q = ""
             while self._ser and self._ser.is_open:
 
                 def read_notification():
-                    buf = self._ser.read(1).decode().replace("\r", "\n")
-                    if not buf:
-                        return None, None, buf
-                    if buf != "\n":
-                        return None, None, buf
-                    # could be a notification
-                    buf += self._ser.read(1).decode().replace("\r", "\n")
-                    if not buf.endswith("\n\n"):
-                        return None, None, buf
-                    buf = buf.replace("\n\n", "\n")
+                    assert len(self._q) <= 1
+                    if not self._q:
+                        self._q = self._ser.read(1).decode()
+                    if not self._q:
+                        return None, None, self._q
+                    if not self._eol.startswith(self._q):
+                        ret, self._q = self._q, ""
+                        return None, None, ret
+                    if len(self._eol) == 2:
+                        # read second eol character
+                        self._q += self._ser.read(1).decode()
+                        if not self._eol == self._q:
+                            # keep second read character, could be eol prefix
+                            ret, self._q = self._q[:-1], self._q[-1]
+                            return (None, None, ret)
                     # could still be a notification
-                    buf += self._ser.read(1).decode().replace("\r", "\n")
-                    if not buf.endswith("\n#"):
-                        return None, None, buf
+                    self._q += self._ser.read(1).decode()
+                    if self._q[-1] != "#":
+                        assert len(
+                            self._eol) == 1 or self._eol[0] != self._eol[1]
+                        # keep
+                        ret, self._q = self._q[:-1], self._q[-1]
+                        return None, None, ret
+
                     # notification detected!
+                    self._q = ""
                     self._ser.read(1)
-                    current_value = int(self._ser.read(self.ports//4), 16)
+                    current_value = int(self._ser.read(self.ports // 4), 16)
                     self._ser.read(1)
-                    previous_value = int(self._ser.read(self.ports//4), 16)
+                    previous_value = int(self._ser.read(self.ports // 4), 16)
                     self._ser.read(1)
                     self._ser.read(self._HEX_DIGITS)  # read and discard iodir
                     return current_value, previous_value, None
@@ -502,12 +549,13 @@ class NumatoUsbGpio:
     def __str__(self):
         """Return human readable string of the device's curent state."""
         return (
-            "dev: {} | id: {} | ver: {} | ports: {} | iodir: 0x{:0{dgts}x} | "
+            "dev: {} | id: {} | ver: {} | ports: {} | eol: {} | iodir: 0x{:0{dgts}x} | "
             "iomask: 0x{:0{dgts}x} | state: 0x{:0{dgts}x}".format(
                 self.dev_file,
                 self.id,
                 self.ver,
                 self.ports,
+                repr(self._eol),
                 self.iodir,
                 self.iomask,
                 self._state,
