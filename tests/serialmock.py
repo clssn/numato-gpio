@@ -12,6 +12,7 @@ def gen_serial(eol):
                 b'id get\r': b'00004711\n>',
                 b'ver\r': b'00000008\n>',
                 b'gpio readall\r': f'{"0"*(self.ports//4)}\n>'.encode(),
+                f'gpio writeall {"0"*(self.ports//4)}\r'.encode(): b'>',
                 f'gpio iomask {"0"*(self.ports//4)}\r'.encode(): b'>',
                 f'gpio iomask {"f"*(self.ports//4)}\r'.encode(): b'>',
                 f'gpio iomask {"F"*(self.ports//4)}\r'.encode(): b'>',

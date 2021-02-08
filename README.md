@@ -88,10 +88,10 @@ Though the code works well in a [Home Assistant](https://home-assistant.io)
 integration since 2018, there are quite some aspects to improve. The following
 issues are only the ones the author is aware of:
 
-* No unit tests
 * Some docstrings are hard to understand
 * Device discovery/registry as module-global dict is sub-optimal
 * Only `/dev/ACMx` devices are scanned which were mapped on the author's Linux
+* No async API available
 
 ## System Tests
 
