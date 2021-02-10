@@ -1,5 +1,4 @@
-.PHONY: usage deps build release clean 
-
+.PHONY: usage test sys-test coverage browse-coverage release clean
 usage:
 	@echo ""
 	@echo "Project mainentance targets:"
@@ -10,14 +9,31 @@ usage:
 	@echo "  clean     Remove all wheels"
 	@echo ""
 
-deps:
-	python3 -m pip install --user --upgrade twine setuptools wheel
+.env:
+	virtualenv .env
+	. .env/bin/activate && python3 -m pip freeze > requirements-venv.txt
+	. .env/bin/activate && python3 -m pip install -e .
+	. .env/bin/activate && python3 -m pip freeze | grep -v numato_gpio > requirements-all.txt
+	. .env/bin/activate && cat requirements-all.txt | grep -Fvf requirements-venv.txt > requirements.txt
+	. .env/bin/activate && python3 -m pip install -r requirements-dev.txt -r requirements.txt
+	rm requirements-all.txt requirements-venv.txt
 
-build: deps
+test: .env
+	pytest -v tests
+
+sys-test: .env
+	pytest sys_tests
+
+coverage: .env
+	pytest --cov=src --cov-report=html:doc/htmlcov tests
+
+browse-coverage: coverage
+	python3 -m webbrowser -t ${PWD}/doc/htmlcov/index.html
+
+
+release: .env build
 	python3 setup.py sdist bdist_wheel
-
-release: build
 	python3 -m twine upload dist/*
 
 clean:
-	rm -rf build dist
+	rm -rf build dist .env .tox doc/htmlcov

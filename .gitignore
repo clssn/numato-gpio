@@ -1,4 +1,20 @@
+# cache
 __pycache__
 *.__pycache__
+
+# deployment
+build
+dist
+
+# virtual/test environments
 src/*.egg-info
+.env
 .tox/
+
+# coverage
+doc/htmlcov
+.coverage*
+*,coverage
+
+# tmp
+tmp
