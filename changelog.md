@@ -7,12 +7,19 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
-Release 0.10.0 (not yet released)
----------------------------------
+Release 0.10.0
+--------------
+
+This release finally adds support for all Numato USB GPIO devices. A device
+mockup has been created whose behavior was derived from Numato documentation
+and the analysis of user's Issues. In practice there may be additional
+properties of devices which haven't been taken into account.
 
 - Support 8, 16, 32, 64 and 128 port devices
 - Add unit tests covering all ports and eol-sequences including notifications
 - Fix notifications which in certain cases would remain undetected
+- Improve unit test coverage to >80%
+- Improve the Makefile to create a virtualenv for development and testing
 
 Release 0.9.0
 -------------
