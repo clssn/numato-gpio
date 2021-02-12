@@ -14,7 +14,7 @@ def test_main(ports, mock_device, monkeypatch, capsys):
     main()
     cap = capsys.readouterr()
     assert cap.out.startswith(
-        "Discovered devices: {}dev: /dev/ttyACM0".format(os.linesep)
+        f"Discovered devices: {os.linesep}dev: /dev/ttyACM0"
     )
     assert cap.err == ""
 
