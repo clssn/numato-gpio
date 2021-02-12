@@ -7,11 +7,14 @@ from common import PORTS, Position
 
 
 @pytest.mark.parametrize("ports", PORTS)
-@pytest.mark.parametrize("position", [
-    Position.FRONT,
-    Position.CENTER,
-    Position.BACK,
-])
+@pytest.mark.parametrize(
+    "position",
+    [
+        Position.FRONT,
+        Position.CENTER,
+        Position.BACK,
+    ],
+)
 def test_notify(ports, position, mock_device, monkeypatch):
     """Test notifications."""
     monkeypatch.setattr("serial.Serial.ports", ports)

@@ -3,6 +3,7 @@ import sys
 import math
 from pathlib import Path
 
+
 def main():
 
     if len(sys.argv) != 3:
@@ -20,23 +21,22 @@ def main():
 
     try:
         ports = int(sys.argv[2])
-        if ports not in [2**x for x in range(3,8)]:
+        if ports not in [2 ** x for x in range(3, 8)]:
             raise ValueError()
-    except(ValueError):
+    except (ValueError):
         print("Number of IO ports needs to be 8, 16, 32, 64 or 128")
         exit(1)
 
     commands = [
-        b'id get\r',
-        b'ver\r',
-        'gpio iomask {:0{dgts}x}\r'.format(2**ports - 1, dgts=ports//4).encode(),
-        'gpio iomask {:0{dgts}x}\r'.format(0, dgts=ports//4).encode(),
-        b'gpio readall\r',
+        b"id get\r",
+        b"ver\r",
+        "gpio iomask {:0{dgts}x}\r".format(2 ** ports - 1, dgts=ports // 4).encode(),
+        "gpio iomask {:0{dgts}x}\r".format(0, dgts=ports // 4).encode(),
+        b"gpio readall\r",
     ]
 
     if ports != 8:
-        commands.append(b'gpio notify off\r')
-
+        commands.append(b"gpio notify off\r")
 
     device = sys.argv[1]
     read_max = 1000
@@ -51,6 +51,7 @@ def main():
         print(" ".join(hex(c) for c in buf))
         print("--")
         ser.close()
+
 
 if __name__ == "__main__":
     main()

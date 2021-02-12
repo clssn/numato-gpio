@@ -9,11 +9,13 @@ from common import PORTS
 @pytest.mark.parametrize("ports", PORTS)
 def test_main(ports, mock_device, monkeypatch, capsys):
     from numato_gpio.__main__ import main
+
     monkeypatch.setattr("serial.Serial.ports", ports)
     main()
     cap = capsys.readouterr()
-    assert cap.out.startswith("Discovered devices: {}dev: /dev/ttyACM0".format(
-        os.linesep))
+    assert cap.out.startswith(
+        "Discovered devices: {}dev: /dev/ttyACM0".format(os.linesep)
+    )
     assert cap.err == ""
 
 

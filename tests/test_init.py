@@ -23,6 +23,7 @@ def test_write(mock_device, monkeypatch):
     for p in range(128):
         dev.write(p, 0)
 
+
 def test_notify(mock_device, monkeypatch):
     monkeypatch.setattr("serial.Serial.ports", 128)
     dev = numato_gpio.NumatoUsbGpio("/dev/ttyACMxx")
