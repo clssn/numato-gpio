@@ -44,9 +44,15 @@ The API can be used like:
 ```python
 import numato_gpio as gpio
 
-my_device_id = 0
-gpio.discover()
-dev = gpio.devices[my_device_id]
+# you can instanciate the device directly from its OS identifier, for instance
+# "/dev/ttyACM0" on Linux or "COM5" on Windows.
+dev = gpio.NumatoUsbGpio("/dev/ttyACM0")
+
+# alternatively, you can use the discovery function, but currently it works
+# only on Linux for /dev/ttyACM* devices:
+# my_device_id = 0
+# gpio.discover()
+# dev = gpio.devices[my_device_id]
 
 # configure port 4 as output and set it to high
 dev.setup(4, gpio.OUT)
