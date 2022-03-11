@@ -427,7 +427,7 @@ class NumatoUsbGpio:
 
     def _read_string(self, expected):
         string = self._read(len(expected.encode()))
-        if string != expected:
+        if string.lower() != expected:
             raise NumatoGpioError(string)
 
     def _read_int(self, query, bits):
