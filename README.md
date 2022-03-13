@@ -44,29 +44,32 @@ The API can be used like:
 ```python
 import numato_gpio as gpio
 
-# you can instanciate the device directly from its OS identifier, for instance
+# You can instantiate the device directly from its OS identifier, for instance
 # "/dev/ttyACM0" on Linux or "COM5" on Windows.
 dev = gpio.NumatoUsbGpio("/dev/ttyACM0")
 
-# alternatively, you can use the discovery function, but currently it works
-# only on Linux for /dev/ttyACM* devices:
+# Alternatively, you can use the discovery function, but it is limited to
+# Linux' /dev/ttyACM* devices. This is because discovery will open and try to
+# interact with any device. This can lead to errors in unrelated devices.
+# Under windows the naming scheme is entirely flat (COMx) increasing the error
+# potential, so no discovery here.
 # my_device_id = 0
 # gpio.discover()
 # dev = gpio.devices[my_device_id]
 
-# configure port 4 as output and set it to high
+# Configure port 4 as output and set it to high
 dev.setup(4, gpio.OUT)
 dev.write(4, 1)
 
-# configure port 27 as input and print its logic level
+# Configure port 27 as input and print its logic level
 dev.setup(27, gpio.IN)
 print(dev.read(27))
 
-# configure port 2 as input and print its ADC value
+# Configure port 2 as input and print its ADC value
 dev.setup(2, gpio.IN)
 print(dev.adc_read(2))
 
-# configure port 14 as input and setup notification on logic level changes
+# Configure port 14 as input and setup notification on logic level changes
 dev.setup(14, gpio.IN)
 def callback(port, level):
     print("{edge:7s} edge detected on port {port} "
