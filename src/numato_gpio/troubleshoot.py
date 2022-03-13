@@ -1,6 +1,5 @@
 import serial
 import sys
-import math
 from pathlib import Path
 
 
@@ -9,8 +8,8 @@ def main():
     if len(sys.argv) != 3:
         print(f"\nUsage: {sys.argv[0]} DEVICE PORTS")
         print()
-        print(f"  DEVICE  Device file, e.g. /dev/ttyACM0")
-        print(f"  PORTS   Number of IO ports of your Device")
+        print("  DEVICE  Device file, e.g. /dev/ttyACM0")
+        print("  PORTS   Number of IO ports of your Device")
         exit(1)
     elif not Path(sys.argv[1]).exists():
         print(f"Path {sys.argv[1]} doesn't exist.")

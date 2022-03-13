@@ -21,13 +21,13 @@ def test_notify(ports, position, mock_device, monkeypatch):
     dev = numato_gpio.NumatoUsbGpio("/dev/ttyACMxx")
     dev.notify = True
     msg = b"gpio readall\r"
-    l = len(msg) - len("\r") + len(dev._ser.eol) * 2 + ports // 4
+    msg_length = len(msg) - len("\r") + len(dev._ser.eol) * 2 + ports // 4
     if position == Position.FRONT:
         monkeypatch.setattr(dev._ser, "notify_inject_at", 0)
     elif position == Position.CENTER:
-        monkeypatch.setattr(dev._ser, "notify_inject_at", l // 2)
+        monkeypatch.setattr(dev._ser, "notify_inject_at", msg_length // 2)
     elif position == Position.BACK:
-        monkeypatch.setattr(dev._ser, "notify_inject_at", l)
+        monkeypatch.setattr(dev._ser, "notify_inject_at", msg_length)
 
     callbacks = []
     if ports != 8:

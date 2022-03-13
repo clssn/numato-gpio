@@ -1,7 +1,7 @@
 import numato_gpio
 import pytest
 
-from common import PORTS, Position
+from common import PORTS
 
 
 @pytest.mark.parametrize("ports", PORTS)

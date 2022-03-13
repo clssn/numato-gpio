@@ -1,8 +1,6 @@
 import os
 
 import pytest
-from numato_gpio import NumatoGpioError
-from copy import deepcopy
 from common import PORTS
 
 
@@ -13,9 +11,7 @@ def test_main(ports, mock_device, monkeypatch, capsys):
     monkeypatch.setattr("serial.Serial.ports", ports)
     main()
     cap = capsys.readouterr()
-    assert cap.out.startswith(
-        f"Discovered devices: {os.linesep}dev: /dev/ttyACM0"
-    )
+    assert cap.out.startswith(f"Discovered devices: {os.linesep}dev: /dev/ttyACM0")
     assert cap.err == ""
 
 

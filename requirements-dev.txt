@@ -1,7 +1,8 @@
 black
+flake8
 pytest
 pytest-cov
+setuptools
 tox
 twine
-setuptools
 wheel
