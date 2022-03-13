@@ -1,10 +1,9 @@
-import math
 import threading
 
 
 def gen_serial(eol):
     class SerialMock:
-        """Mockup for a pyserial Serial object connected to a Numato USB IO expander device."""
+        """Mockup for a Numato USB IO expander device behind a serial device."""
 
         ports = None
 

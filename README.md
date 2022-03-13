@@ -1,4 +1,5 @@
 ![Upload Python Package](https://github.com/clssn/numato-gpio/workflows/Upload%20Python%20Package/badge.svg)
+![Tests](https://github.com/clssn/numato-gpio/workflows/Tests/badge.svg)
 
 # Python API for Numato GPIO Expanders
 

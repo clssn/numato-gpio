@@ -448,12 +448,14 @@ class NumatoUsbGpio:
                 self._read_string(f"{self._eol}>")
             except ValueError:
                 raise NumatoGpioError(
-                    f"Query '{repr(query)}' returned unexpected result {repr(response)}. "
-                    "Expected a {bits} bit integer in hexadecimal notation."
+                    f"Query '{repr(query)}' returned unexpected result "
+                    f"{repr(response)}. Expected a {bits} bit integer in "
+                    "hexadecimal notation."
                 )
             except NumatoGpioError as err:
                 raise NumatoGpioError(
-                    f"Unexpected string {repr(str(err))} after successful query {repr(query)}"
+                    f"Unexpected string {repr(str(err))} after successful query "
+                    f"{repr(query)}"
                 )
         return val
 
@@ -471,7 +473,7 @@ class NumatoUsbGpio:
         self._can_read.release()
         return response
 
-    def _poll(self):
+    def _poll(self):  # noqa: C901
         """Read data and process and notifications from the Numato device.
 
         Reads characters from the serial device and detects edge notifications
