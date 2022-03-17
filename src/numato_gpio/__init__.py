@@ -221,7 +221,12 @@ class NumatoUsbGpio:
                 "that port does not provide an ADC."
             )
         with self._rw_lock:
-            query = f"adc read {adc_port}"
+            # On devices with more than 32 ports, adc read command
+            # accepts values  00 - 31
+            if adc_port < 10 and self.ports > 32:
+                query = f"adc read 0{adc_port}"
+            else:
+                query = f"adc read {adc_port}"
             self._query(query)
             resp = self._read_until(">")
             try:
