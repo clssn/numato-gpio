@@ -8,12 +8,12 @@ def dev():
 
 
 def test_nothing_discovered():
-    gpio.discover(['/dev/__notexisting__'])
+    gpio.discover(["/dev/__notexisting__"])
     assert not gpio.devices
 
 
 def test_regular_discover_return_none_device_found():
-    assert gpio.discover(['/dev/ttyACM0']) is None
+    assert gpio.discover(["/dev/ttyACM0"]) is None
     assert gpio.devices
 
 

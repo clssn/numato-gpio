@@ -1,7 +1,7 @@
 import numato_gpio
 import pytest
 
-from common import PORTS, Position
+from common import PORTS
 
 
 @pytest.mark.parametrize("ports", PORTS)
@@ -22,6 +22,7 @@ def test_write(mock_device, monkeypatch):
     dev.iodir = 0  # all outputs
     for p in range(128):
         dev.write(p, 0)
+
 
 def test_notify(mock_device, monkeypatch):
     monkeypatch.setattr("serial.Serial.ports", 128)

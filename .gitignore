@@ -8,7 +8,7 @@ dist
 
 # virtual/test environments
 src/*.egg-info
-.env
+.venv
 .tox/
 
 # coverage
