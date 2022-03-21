@@ -221,7 +221,16 @@ class NumatoUsbGpio:
                 "that port does not provide an ADC."
             )
         with self._rw_lock:
-            query = f"adc read {adc_port}"
+            """On devices with more than 32 ports, adc read command **only**
+            accepts two-digit numbers with leading zero.
+
+            This is vaguely described at the end of "The Command Set"
+            in the documentation:
+            https://numato.com/docs/64-channel-usb-gpio-module-analog-inputs/
+            https://numato.com/docs/128-channel-usb-gpio-module-with-analog-inputs/
+            """
+            digits = 2 if self.ports > 32 else 1
+            query = f"adc read {adc_port:0{digits}}"
             self._query(query)
             resp = self._read_until(">")
             try:
@@ -436,7 +445,9 @@ class NumatoUsbGpio:
 
     def _read_string(self, expected):
         string = self._read(len(expected.encode()))
-        if string != expected:
+        # Some devices respond with mixed uppercasing,
+        # lowering the response should match expected
+        if string.lower() != expected:
             raise NumatoGpioError(string)
 
     def _read_int(self, query, bits):
