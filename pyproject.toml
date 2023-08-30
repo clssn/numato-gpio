@@ -16,6 +16,9 @@ classifiers=[
 Homepage = "https://github.com/clssn/numato-gpio"
 Repository = "https://github.com/clssn/numato-gpio.git"
 
+[tool.poetry.scripts]
+numato-discover = "numato_gpio.__main__:main"
+
 [tool.poetry.dependencies]
 python = "^3.8.1"
 pyserial = "^3.1"
@@ -30,6 +33,3 @@ bandit = "^1.7.5"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-numato-discover = "numato_gpio.__main__:main"
