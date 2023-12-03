@@ -1,39 +1,26 @@
-.PHONY: usage test sys-test coverage browse-coverage release clean
+.PHONY: usage test sys-test coverage browse-coverage clean
 usage:
 	@echo ""
-	@echo "Project mainentance targets:"
+	@echo "Project maintenance targets:"
 	@echo ""
-	@echo "  deps      Install maintenance dependencies"
-	@echo "  build     Build the numato-gpio wheel"
-	@echo "  release   Push the wheel to PyPI"
-	@echo "  clean     Remove all wheels"
+	@echo "  test      Run all unit-tests"
+	@echo "  sys-test  Run all system-tests (with a device connected)"
+	@echo "  release   Author a release commit and create the tag"
+	@echo "  clean     Remove all files not under version control"
 	@echo ""
 
-.venv:
-	virtualenv .venv
-	. .venv/bin/activate && python3 -m pip freeze > requirements-venv.txt
-	. .venv/bin/activate && python3 -m pip install -e .
-	. .venv/bin/activate && python3 -m pip freeze | grep -v numato_gpio > requirements-all.txt
-	. .venv/bin/activate && cat requirements-all.txt | grep -Fvf requirements-venv.txt > requirements.txt
-	. .venv/bin/activate && python3 -m pip install -r requirements-dev.txt -r requirements.txt
-	rm requirements-all.txt requirements-venv.txt
+test:
+	poetry run pytest -n $(shell nproc) tests
 
-test: .venv
-	pytest -v tests
+sys-test:
+	poetry run pytest -n 1 sys_tests
 
-sys-test: .venv
-	pytest sys_tests
-
-coverage: .venv
-	pytest --cov=src --cov-report=html:doc/htmlcov tests
+coverage:
+	poetry run pytest -n $(shell nproc) --cov=src --cov-report=html:doc/htmlcov tests
 
 browse-coverage: coverage
-	python3 -m webbrowser -t ${PWD}/doc/htmlcov/index.html
+	poetry run python3 -m http.server -d ${PWD}/doc/htmlcov 8080
 
-
-release: .venv build
-	python3 setup.py sdist bdist_wheel
-	python3 -m twine upload dist/*
 
 clean:
-	rm -rf build dist .venv .tox doc/htmlcov
+	git clean -df

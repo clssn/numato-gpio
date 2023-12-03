@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "numato-gpio"
-version = "0.11.1"
+version = "0.11.2a0"
 description = "Python API for Numato GPIO Expanders"
 authors = ["Henning Claßen <code@clssn.de>"]
 license = "MIT License"
@@ -16,6 +16,9 @@ classifiers=[
 Homepage = "https://github.com/clssn/numato-gpio"
 Repository = "https://github.com/clssn/numato-gpio.git"
 
+[tool.poetry.scripts]
+numato-discover = "numato_gpio.__main__:main"
+
 [tool.poetry.dependencies]
 python = "^3.8.1"
 pyserial = "^3.1"
@@ -26,11 +29,10 @@ pytest = "^7.4.0"
 flake8 = "^6.1.0"
 pyline = "^0.3.20"
 bandit = "^1.7.5"
+pytest-xdist = "^3.5.0"
+pytest-cov = "^4.1.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-
-[tool.poetry.scripts]
-numato-discover = "numato_gpio.__main__:main"
