@@ -14,20 +14,25 @@ GPIO expanders](https://numato.com/product/32-channel-usb-gpio-module-with-analo
 
 See the [changelog](changelog.md) for details on the releases.
 
-## Installation
+## Installation using pipx
+
+Install pipx if you don't have it. It isolates your python tools' dependencies.
+
+    pip install pipx
+    pipx ensurepath  # helps the shell to find the tools by adding ~/.local/bin to the path
 
 Install latest development version:
 
-    pip install --user git+https://github.com/clssn/numato-gpio.git
+    pipx install git+https://github.com/clssn/numato-gpio.git
 
-Install latest release:
+Or install latest release:
 
-    pip install --user numato-gpio
+    pipx install numato-gpio
 
 ## Usage CLI
 
 Test whether your devices can be found running the command-line interface like
-`python3 -m numato_gpio`. Remember to have your user in the `dialout` group,
+`numato-discover`. Remember to have your user in the `dialout` group,
 since the devices are registered as /dev/ttyACMx (i.e. modem devices).
 
 Expected output:
@@ -103,6 +108,30 @@ issues are only the ones the author is aware of:
 * Only `/dev/ACMx` devices are scanned which were mapped on the author's Linux
 * No async API available
 
+## Install development environment
+
+If you plan to make a contribution you should use `poetry` to set-up your
+development environment. So first make sure to install the tool if you don't
+have it already.
+
+    pip install poetry
+
+Then have poetry install the dependencies and the numato-project (editable) in a
+virtualenv.
+
+    poetry install
+
+You can now activate the virtualenv (.venv directory) like
+
+    poetry shell
+
+If you use VSCode or similar IDEs, ensure that their Python environment is
+configured to the .venv directory so their tools, like Debugger, Test Explorer
+etc., work.
+
+Note that all commands of the Makefile are using `poetry run`, so you don't have
+to run `poetry shell` before calling them.
+
 ## System Tests
 
 Unit tests in the `tests` directory are using a device mockup which mimicks
@@ -120,6 +149,5 @@ running them.
 **WARNING**
 
 Only run the system tests with *gpio ports disconnected*! You otherwise risk
-a short circuit which may lead to damage or destruction of your device or
-even fire.
+a short circuit which may lead to damage or destruction of your device or worse.
 ---
