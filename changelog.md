@@ -7,6 +7,18 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
+Release 0.11.1
+--------------
+
+Dependency version upgrade, initiated by dependabot due to a security issue.
+
+Release 0.11.0
+--------------
+
+This release changes the project to poetry/pyproject.toml based. Poetry manages
+dependencies, resolves them to a lockfile and maintains the resolved versions in
+a virtualenv. Poetry can also be used to package and upload releases to PyPi.
+
 Release 0.10.0
 --------------
 
