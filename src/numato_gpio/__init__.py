@@ -117,6 +117,7 @@ class NumatoUsbGpio:
         self._HEX_DIGITS = self.ports // 4
         self._callback = [0] * self.ports
         self._edge = [None] * self.ports
+        self._ver = None
         try:
             _ = self.id
             _ = self.ver
@@ -129,10 +130,10 @@ class NumatoUsbGpio:
 
     @property
     def ver(self):
-        """Return the device's version number as an integer value."""
-        if not hasattr(self, "_ver"):
+        """Return the device's version string."""
+        if self._ver is None:
             with self._rw_lock:
-                self._ver = self._read_int("ver", 32)
+                self._ver = self._query_string(f"ver")
         return self._ver
 
     @property
