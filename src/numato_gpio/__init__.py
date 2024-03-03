@@ -102,6 +102,7 @@ class NumatoUsbGpio:
         """Open a serial connection to a Numato device and initialize it."""
 
         self.dev_file = device
+        self._ports = None
         self._state = 0
         self._buf = ""
         self._poll_thread = threading.Thread(target=self._poll, daemon=True)
@@ -158,11 +159,9 @@ class NumatoUsbGpio:
                 Returns:
                         (int): Number of ports
         """
-        if not hasattr(self, "_ports"):
-            self._query("gpio readall")
-            response = self._read_until(self._eol)
-            self._read_until(">")
-            hex_digits = len(response) - len(self._eol)
+        if self._ports is None:
+            response = self._query_string("gpio readall")
+            hex_digits = len(response)
             self._ports = hex_digits * 4
         return self._ports
 
@@ -450,6 +449,17 @@ class NumatoUsbGpio:
         if string.lower() != expected:
             raise NumatoGpioError(string)
 
+    def _query_string(self, query: str) -> str:
+        """Send a query and returns the answer as a string.
+        
+        The answer excludes the end-of-line and prompt characters.
+        """
+        with self._rw_lock:
+            self._query(query)
+            response = self._read_until(self._eol)[:-len(self._eol)]
+            self._read_string(">")
+            return response
+        
     def _read_int(self, query, bits):
         with self._rw_lock:
             self._query(query)
