@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "numato-gpio"
-version = "0.11.2a0"
+version = "0.12.0"
 description = "Python API for Numato GPIO Expanders"
 authors = ["Henning Claßen <code@clssn.de>"]
 license = "MIT License"

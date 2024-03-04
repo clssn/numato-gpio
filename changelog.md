@@ -7,6 +7,13 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
+Release 0.12.0
+--------------
+
+In this release the numato board's version string is read as a string and not
+expected to be of integer type anymore. This should resolve most of the reported
+issues.
+
 Release 0.11.1
 --------------
 
