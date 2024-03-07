@@ -112,7 +112,6 @@ class NumatoUsbGpio:
         self._write(b"gpio notify off\r")
         self._drain_ser_buffer()
         self._poll_thread.start()
-        self._detect_eol()
         self._MASK_ALL_PORTS = 2 ** self.ports - 1
         self._HEX_DIGITS = self.ports // 4
         self._callback = [0] * self.ports
@@ -234,7 +233,7 @@ class NumatoUsbGpio:
             self._query(query)
             resp = self._read_until(">")
             try:
-                return int(resp[: resp.find(self._eol)])
+                return int(resp[:-1])
             except ValueError:
                 raise NumatoGpioError(
                     f"Query '{repr(query)}' returned unexpected result {repr(resp)}. "
@@ -284,7 +283,7 @@ class NumatoUsbGpio:
 
         query = f"gpio notify {'on' if enable else 'off'}"
         expected_response = (
-            f"gpio notify {'enabled' if enable else 'disabled'}{self._eol}>"
+            f"gpio notify {'enabled' if enable else 'disabled'}>"
         )
 
         with self._rw_lock:
@@ -379,47 +378,14 @@ class NumatoUsbGpio:
                 expected=">",
             )
 
-    def _detect_eol(self):
-        """Numato devices respond with different end-of-line (eol) sequences.
-
-        This function detects the eol-sequence the current device uses, using
-        the response of the `id get\r` command. Note that this python module
-        always uses the `\r` eol-sequence to terminate *queries*. All other
-        sequences lead to unconventional eol-sequences in the devices'
-        responses.
-
-        Though currently only the `\r\n` and \n\r` sequences have been
-        experienced with Numato devices, this module also supports solo `\r`
-        and `\n` eol-sequences.
-
-        This detection is based on the assumption that all commands
-        consequently respond using the same eol-sequence.
-
-        Important: This function needs to be called before notifications are
-                   enabled. Because the notification detection relies on the
-                   knowledge of the devices proper eol-sequence.
-        """
-        if hasattr(self, "_notify") and self._notify:
-            raise NumatoGpioError(
-                "Can't reliably detect the end-of-line-sequence "
-                "as notifications are already enabled."
-            )
-
-        # initial assumption required for basic operation of the reader thread
-        self._eol = "\r\n"
-
-        with self._rw_lock:
-            self._write(b"id get\r")
-            response = self._read_until(">")
-            eol = response[-3:-1]
-            if eol[0] not in ["\r", "\n"]:
-                eol = eol[1]
-            self._eol = eol
+    EOL_BYTES = b"\r\n"
+    def _remove_eol(self, sequence: bytes) -> bytes:
+        return bytes(x for x in sequence if x not in self.EOL_BYTES)
 
     def _query(self, query, expected=None):
         with self._rw_lock:
             self._write(f"{query}\r".encode())
-            expected_echo = f"{query}{self._eol}"
+            expected_echo = f"{query}"
             try:
                 self._read_string(expected_echo)
             except NumatoGpioError as err:
@@ -452,22 +418,21 @@ class NumatoUsbGpio:
 
     def _query_string(self, query: str) -> str:
         """Send a query and returns the answer as a string.
-        
+
         The answer excludes the end-of-line and prompt characters.
         """
         with self._rw_lock:
             self._query(query)
-            response = self._read_until(self._eol)[:-len(self._eol)]
-            self._read_string(">")
+            response = self._read_until(">")[:-1]
             return response
-        
+
     def _read_int(self, query, bits):
         with self._rw_lock:
             self._query(query)
             response = self._read(bits // 4)
             try:
                 val = int(response, 16)
-                self._read_string(f"{self._eol}>")
+                self._read_string(">")
             except ValueError:
                 raise NumatoGpioError(
                     f"Query '{repr(query)}' returned unexpected result "
@@ -495,6 +460,46 @@ class NumatoUsbGpio:
         self._can_read.release()
         return response
 
+    def _ser_read(self, num_bytes: int) -> bytes:
+        response = self._ser.read(num_bytes)
+        return self._remove_eol(response)
+
+    def _read_notification(self):
+        """Read a notification and call any registered callbacks.
+
+        This method assumes that the leading '#' character has already been read.
+        Notification example for a 64 port device configured to all inputs:
+
+            # 0000000000000000 0000000000000001 FFFFFFFFFFFFFFFF
+            ^ ^                ^                ^
+        start previous value   new value        iodir mask
+        """
+        self._ser_read(1)
+        current_value = int(self._ser_read(self.ports // 4), 16)
+        self._ser_read(1)
+        previous_value = int(self._ser_read(self.ports // 4), 16)
+        self._ser_read(1)
+        _ = int(self._ser_read(self.ports // 4), 16)  # read and discard iodir
+
+        assert current_value is not None and previous_value is not None
+        edges = current_value ^ previous_value
+
+        def logic_level(port):
+            return bool(current_value & (1 << port))
+
+        def edge_detected(port):
+            return bool(edges & (1 << port))
+
+        def edge_selected(port):
+            lv = logic_level(port)
+            return (lv and self._edge[port] in [RISING, BOTH]) or (
+                not lv and self._edge[port] in [FALLING, BOTH]
+            )
+
+        for port in range(self.ports):
+            if edge_detected(port) and edge_selected(port):
+                self._callback[port](port, logic_level(port))
+
     def _poll(self):  # noqa: C901
         """Read data and process and notifications from the Numato device.
 
@@ -507,89 +512,41 @@ class NumatoUsbGpio:
         reading.
         """
         try:
-            self._q = ""
             while self._ser and self._ser.is_open:
 
-                def read_notification():
-                    assert len(self._q) <= 1
-                    if not self._q:
-                        self._q = self._ser.read(1).decode()
-                    if not self._q:
-                        return None, None, self._q
-                    if not self._eol.startswith(self._q):
-                        ret, self._q = self._q, ""
-                        return None, None, ret
-                    if len(self._eol) == 2:
-                        # read second eol character
-                        self._q += self._ser.read(1).decode()
-                        if not self._eol == self._q:
-                            # keep second read character, could be eol prefix
-                            ret, self._q = self._q[:-1], self._q[-1]
-                            return (None, None, ret)
-                    # could still be a notification
-                    self._q += self._ser.read(1).decode()
-                    if self._q[-1] != "#":
-                        assert len(self._eol) == 1 or self._eol[0] != self._eol[1]
-                        # keep
-                        ret, self._q = self._q[:-1], self._q[-1]
-                        return None, None, ret
+                if not (b := self._ser_read(1).decode()):
+                    continue
 
-                    # notification detected!
-                    self._q = ""
-                    self._ser.read(1)
-                    current_value = int(self._ser.read(self.ports // 4), 16)
-                    self._ser.read(1)
-                    previous_value = int(self._ser.read(self.ports // 4), 16)
-                    self._ser.read(1)
-                    self._ser.read(self._HEX_DIGITS)  # read and discard iodir
-                    return current_value, previous_value, None
-
-                current_value, previous_value, buf = read_notification()
-                if current_value is not None and previous_value is not None:
-                    edges = current_value ^ previous_value
-
-                    def logic_level(port):
-                        return bool(current_value & (1 << port))
-
-                    def edge_detected(port):
-                        return bool(edges & (1 << port))
-
-                    def edge_selected(port):
-                        lv = logic_level(port)
-                        return (lv and self._edge[port] in [RISING, BOTH]) or (
-                            not lv and self._edge[port] in [FALLING, BOTH]
-                        )
-
-                    for port in range(self.ports):
-                        if edge_detected(port) and edge_selected(port):
-                            self._callback[port](port, logic_level(port))
-                elif buf:
+                if b != "#":
                     self._can_read.acquire()
-                    self._buf += buf
+                    self._buf += b
                     self._can_read.notify()
                     self._can_read.release()
+                    continue
+
+                self._read_notification()
+
         except (TypeError, serial.serialutil.SerialException):
-            self._ser.close()
-            pass  # ends the polling loop and its thread
+            self._ser.close()  # ends the polling loop and its thread
+
 
     def _check_port_range(self, port):
         if port not in range(self.ports):
             raise NumatoGpioError(f"Port number {port} out of range.")
 
     def _drain_ser_buffer(self):
-        while self._ser.read(DEVICE_BUFFER_SIZE):
+        while self._ser_read(DEVICE_BUFFER_SIZE):
             pass
 
     def __str__(self):
         """Return human readable string of the device's curent state."""
         return (
-            "dev: {} | id: {} | ver: {} | ports: {} | eol: {} | iodir: 0x{:0{dgts}x} | "
+            "dev: {} | id: {} | ver: {} | ports: {} | iodir: 0x{:0{dgts}x} | "
             "iomask: 0x{:0{dgts}x} | state: 0x{:0{dgts}x}".format(
                 self.dev_file,
                 self.id,
                 self.ver,
                 self.ports,
-                repr(self._eol),
                 self.iodir,
                 self.iomask,
                 self._state,
