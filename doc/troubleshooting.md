@@ -58,7 +58,7 @@ collect information about the problem before opening an issue.
    numato_gpio`. The output should be like:
 
         Discovered devices:
-        dev: /dev/ttyACM0 | id: 2 | ver: 9 | ports: 32 | eol: '\r\n' | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+        dev: /dev/ttyACM0 | id: 2 | ver: 9 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
 
 7. If 6. wasn't successful, run `python3 -m numato_gpio.troubleshoot`. Make
    sure to include the output in your issue.
