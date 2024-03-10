@@ -123,7 +123,8 @@ class NumatoUsbGpio:
             _ = self.id
             _ = self.ver
             self.iodir = self._mask_all_ports  # resets iomask as well
-            self.notify = False
+            if self.can_notify:
+                self.notify = False
         except NumatoGpioError as err:
             raise NumatoGpioError(
                 f"Device {self.dev_file} doesn't answer like a numato device: {err}"
@@ -190,7 +191,8 @@ class NumatoUsbGpio:
         with self._rw_lock:
             self.iomask = self._mask_all_ports
             self.iodir = self._mask_all_ports
-            self.notify = False
+            if self.can_notify:
+                self.notify = False
             self._ser.close()
 
     def write(self, port, value):
@@ -284,7 +286,7 @@ class NumatoUsbGpio:
         """
         if not self.can_notify:
             # notifications not supported on 8 port devices
-            return
+            raise NumatoGpioError("Notify mode not supported on this device variant.")
 
         query = f"gpio notify {'on' if enable else 'off'}"
         expected_response = f"gpio notify {'enabled' if enable else 'disabled'}"
@@ -302,6 +304,10 @@ class NumatoUsbGpio:
         port. Note that for this mechanism to work you must also enable
         notifications calling notify(True) on this device object.
         """
+        if not self.can_notify:
+            raise NumatoGpioError(
+                "Can't install event callback. Device doesn't support notifications."
+            )
         self._callback[port] = callback
         self._edge[port] = edge
 
@@ -546,10 +552,16 @@ class NumatoUsbGpio:
 
     def __str__(self):
         """Return human readable string of the device's curent state."""
-        return (
-            f"dev: {self.dev_file} | id: {self.id} | ver: {self.ver} | ports: {self.ports}"
-            f" | iodir: 0x{self.iodir:0{self._hex_digits}x} | "
-            f"iomask: 0x{self.iomask:0{self._hex_digits}x} | state: 0x{self._state:0{self._hex_digits}x}"
+        return " | ".join(
+            (
+                f"dev: {self.dev_file}",
+                f"id: {self.id}",
+                f"ver: {self.ver}",
+                f"ports: {self.ports}",
+                f"iodir: 0x{self.iodir:0{self._hex_digits}x} ",
+                f"iomask: 0x{self.iomask:0{self._hex_digits}x}",
+                f"state: 0x{self._state:0{self._hex_digits}x}",
+            )
         )
 
     ADC_RESOLUTION = {
