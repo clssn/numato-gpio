@@ -1,7 +1,8 @@
+import random
 import threading
 
 
-def gen_serial(eol):
+def gen_serial():
     class SerialMock:
         """Mockup for a Numato USB IO expander device behind a serial device."""
 
@@ -46,21 +47,29 @@ def gen_serial(eol):
             self.buf = b""
             self.lock = threading.RLock()
             self.is_open = True
-            self.eol = eol
             self.notify = False
             self.notify_inject_at = 0
 
-        def write(self, input):
+        @property
+        def eol(self) -> str:
+            """Return a random number (0 to 10) of choices of line ending characters.
+
+            Tests that line endings really don't play a role when reading the device output.
+            """
+            EOL_CHARS="\r\n"
+            return "".join(random.choices(EOL_CHARS, k=random.randrange(0, 10)))
+
+        def write(self, input_):
             """Write to the mocked device.
 
             Processes the written data and generates the output in the buffer."""
             with self.lock:
 
-                self.buf += self.respond(input)
+                self.buf += self.respond(input_)
 
-                if input == b"gpio notify on\r" and self.ports != 8:
+                if input_ == b"gpio notify on\r" and self.ports != 8:
                     self.notify = True
-                if input == b"gpio notify off\r" and self.ports != 8:
+                if input_ == b"gpio notify off\r" and self.ports != 8:
                     self.notify = False
 
         def read(self, size):
