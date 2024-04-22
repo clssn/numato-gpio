@@ -17,11 +17,16 @@ Homepage = "https://github.com/clssn/numato-gpio"
 Repository = "https://github.com/clssn/numato-gpio.git"
 
 [tool.poetry.scripts]
-numato-discover = "numato_gpio.__main__:main"
+numato = "numato_gpio.cli.cmd_numato:app"
+numato-discover = "numato_gpio.cli.cmd_discover:app"
 
 [tool.poetry.dependencies]
 python = "^3.8.1"
 pyserial = "^3.1"
+click = "^8.1.7"
+rich = "^13.7.1"
+typer = "^0.12.3"
+anyio = "^4.3.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
