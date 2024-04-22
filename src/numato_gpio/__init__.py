@@ -193,7 +193,11 @@ class NumatoUsbGpio:
             self.iodir = self._mask_all_ports
             if self.can_notify:
                 self.notify = False
-            self._ser.close()
+            try:
+                self._ser.close()
+            except OSError:
+                pass
+        self._poll_thread.join()
 
     def write(self, port, value):
         """Write the logic level of a single port.
@@ -406,7 +410,10 @@ class NumatoUsbGpio:
             with self._rw_lock:
                 self._ser.write(query)
         except serial.serialutil.SerialException as err:
-            self._ser.close()
+            try:
+                self._ser.close()
+            except OSError:
+                pass
             raise NumatoGpioError("Serial communication failure") from err
 
     def _read_expected_string(self, expected: str) -> None:
@@ -526,7 +533,6 @@ class NumatoUsbGpio:
         """
         try:
             while self._ser and self._ser.is_open:
-
                 if not (b := self._serial_read(1).decode()):
                     continue
 
@@ -540,7 +546,11 @@ class NumatoUsbGpio:
                 self._read_notification()
 
         except (TypeError, serial.serialutil.SerialException):
-            self._ser.close()  # ends the polling loop and its thread
+            # ends the polling loop and its thread
+            try:
+                self._ser.close()
+            except OSError:
+                pass
 
     def _check_port_range(self, port):
         if port not in range(self.ports):
