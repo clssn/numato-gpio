@@ -1,5 +1,7 @@
 """Main module printing detected numato devices on the command-line."""
-from numato_gpio import discover, cleanup, devices
+
+import importlib.metadata
+from numato_gpio import cleanup, devices, discover
 
 
 def main():
@@ -7,6 +9,7 @@ def main():
     try:
         discover()
         print(f"Discovered devices: {'(None)' if not devices else ''}")
+        print(f"\nnumato-gpio v{importlib.metadata.version('numato-gpio')}")
         for device in devices.values():
             print(device)
     finally:
