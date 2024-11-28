@@ -1,14 +1,19 @@
+"""Test the main function."""
+
 import os
 from unittest import mock
 
 import pytest
-from common import PORTS
 
 import numato_gpio
 
+# ruff: noqa: ANN001,INP001,S101
 
-@pytest.mark.parametrize("ports", PORTS)
-def test_main(ports, mock_device, monkeypatch, capsys):
+
+@pytest.mark.parametrize("ports", numato_gpio.NumatoUsbGpio.PORTS)
+@pytest.mark.usefixtures("mock_device")
+def test_main(ports: int, monkeypatch, capsys) -> None:
+    """Ensure main lists available devices."""
     with mock.patch.object(numato_gpio.discover, "__defaults__", (["/dev/ttyACMxx"],)):
         monkeypatch.setattr("serial.Serial.ports", ports)
         from numato_gpio.__main__ import main
@@ -17,11 +22,3 @@ def test_main(ports, mock_device, monkeypatch, capsys):
         cap = capsys.readouterr()
         assert cap.out.startswith(f"Discovered devices: {os.linesep}dev: /dev/ttyACMxx")
         assert cap.err == ""
-
-
-# @pytest.mark.parametrize("ports", PORTS)
-# def test_error_duplicate_device(ports, mock_device, monkeypatch):
-#     from numato_gpio.__main__ import main
-#     device2 = deepcopy(mock_device)
-#     monkeypatch.setattr("serial.Serial.ports", ports)
-#     main()
