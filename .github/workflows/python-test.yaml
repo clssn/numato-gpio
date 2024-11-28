@@ -1,37 +1,30 @@
 name: Tests
 
-on: [push]
+on:
+  push:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
 
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.1
-        with:
-          access_token: ${{ github.token }}
       - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: "${{ matrix.python-version }}"
-      - name: Install Poetry
-        run: >
-          pip install --upgrade pip &&
-          pip install pipx &&
-          python3 -m pipx ensurepath &&
-          pipx install poetry
-      - name: Install venv
-        run: poetry install
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          poetry run flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          poetry run flake8 src tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
       - name: Test
-        run: poetry run pytest tests
+        run: make test
+
+      - name: Check Format
+        run: uvx ruff format --check
+
+      - name: Lint
+        run: uvx ruff check --select=ALL --no-fix
