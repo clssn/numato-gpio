@@ -1,7 +1,9 @@
 """System tests, using a real numato device."""
+
 from pytest import fixture
 
 import numato_gpio as gpio
+
 
 @fixture(name="dev")
 def dev_fixture():

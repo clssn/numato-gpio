@@ -1,4 +1,5 @@
 """Test device initialization agains mockup devices."""
+
 import pytest
 from common import PORTS
 
@@ -15,6 +16,7 @@ def test_instatiate_cleanup(ports, monkeypatch):
     monkeypatch.setattr("serial.Serial.ports", ports)
     dev = numato_gpio.NumatoUsbGpio("/dev/ttyACMxx")
     dev.cleanup()
+
 
 @pytest.mark.usefixtures("mock_device")
 def test_write(monkeypatch):

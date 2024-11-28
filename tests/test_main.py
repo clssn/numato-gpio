@@ -9,9 +9,7 @@ from common import PORTS
 
 @pytest.mark.parametrize("ports", PORTS)
 def test_main(ports, mock_device, monkeypatch, capsys):
-
     with mock.patch.object(numato_gpio.discover, "__defaults__", (["/dev/ttyACMxx"],)):
-
         monkeypatch.setattr("serial.Serial.ports", ports)
         from numato_gpio.__main__ import main
 

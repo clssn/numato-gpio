@@ -1,4 +1,5 @@
 """Fixtures commonly used by tests."""
+
 import pytest
 import serial
 import serialmock
