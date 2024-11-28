@@ -1,34 +1,110 @@
 """Python API for Numato USB GPIO devices."""
 
+from __future__ import annotations
+
 import threading
-from typing import Optional
+from enum import Enum
+from typing import ClassVar
 
 import serial
 
-# Edge detection
-RISING = 1
-FALLING = 2
-BOTH = 3
 
-# Port direction
-OUT = 0
-IN = 1
+class Edge(Enum):
+    """Specify the direction of a logic level change.
+
+    Used e.g. for edge detection filtering.
+    """
+
+    RISING = 1
+    FALLING = 2
+    BOTH = 3
+
+
+class Direction(Enum):
+    """Specify the direction of a port."""
+
+    OUT = 0
+    IN = 1
+
 
 ACM_DEVICE_RANGE = range(10)
 DEVICE_BUFFER_SIZE = 1000000
 DEFAULT_DEVICES = [f"/dev/ttyACM{i}" for i in ACM_DEVICE_RANGE]
 
-devices = dict()
+devices = {}
 
 
 class NumatoGpioError(RuntimeError):
     """Generic error during GPIO processing."""
 
 
+class NumatoIoDirError(NumatoGpioError):
+    """Wrong port io direction error."""
+
+    def __init__(self, port: int) -> None:
+        """Initialize error message."""
+        super().__init__(f"Can't write to an input port (port #{port})")
+
+
+class NumatoAdcPortError(NumatoGpioError):
+    """Not an ADC port error."""
+
+    def __init__(self, adc_port: int) -> None:
+        """Initialize error message indicating the wrongful ADC port number."""
+        super().__init__(
+            f"Can't read analog value from port {adc_port} - "
+            "that port does not provide an ADC.",
+        )
+
+
+class NumatoUnexpectedResponseError(NumatoGpioError):
+    """Wrong ADC value error."""
+
+    def __init__(self, query: str, resp: str, why: str = "") -> None:
+        """Initialize error message detaling what and why it's unexpected."""
+        super().__init__(
+            f"Query '{query!r}' returned unexpected result {resp!r}. {why}",
+        )
+
+
+class NumatoNotifyNotSupportedError(NumatoGpioError):
+    """Notify mode is not supported error."""
+
+    def __init__(self, port: int, detail: str = "") -> None:
+        """Initialize error message detailing the device type by number of ports."""
+        super().__init__(
+            f"Notify mode not supported on an {port} port device. {detail}",
+        )
+
+
+class NumatoQueryEchoError(NumatoGpioError):
+    """Query not echoed correctly by the device."""
+
+    def __init__(self, query: str, echo: str) -> None:
+        """Explain the error refering to the query and its unexpected echo."""
+        super().__init__(f"Query {query!r} returned unexpected echo {echo!r}")
+
+
+class NumatoSerialIoError(NumatoGpioError):
+    """Wrapper for SerialException errors."""
+
+    def __init__(self, err: serial.SerialException) -> None:
+        """Initialize a readable message containing the SerialException message."""
+        super().__init__(f"Serial communication failure: {err}")
+
+
+class NumatoPortOutOfRangeError(NumatoGpioError):
+    """Port number out of range for a device."""
+
+    def __init__(self, port: int) -> None:
+        """Initialize a readable message containing the out-of-range port number."""
+        super().__init__(f"Port number {port} out of range.")
+
+
 DISCOVER_LOCK = threading.RLock()
 
 
-def discover(dev_files=DEFAULT_DEVICES):
+def discover(dev_files: list[str] = DEFAULT_DEVICES) -> None:
     """Scan a set of unix device files to find Numato USB devices.
 
     Devices are made available via the "devices" dict with the device id read
@@ -66,7 +142,7 @@ def discover(dev_files=DEFAULT_DEVICES):
                 # device id unique?
                 device_id = gpio.id
                 if device_id in devices:
-                    raise NumatoGpioError(
+                    raise NumatoGpioError(  # noqa: TRY003, TRY301
                         f"ACM device {device_file} has duplicate device id {device_id}",
                     )
 
@@ -78,7 +154,7 @@ def discover(dev_files=DEFAULT_DEVICES):
                     del gpio
 
 
-def cleanup():
+def cleanup() -> None:
     """Cleanup of all discovered devices' serial connections.
 
     This is inteded to be called during termination of the application or
@@ -87,7 +163,7 @@ def cleanup():
     for dev_id in list(devices.keys()):
         try:
             devices[dev_id].cleanup()
-        except NumatoGpioError:
+        except NumatoGpioError:  # noqa: PERF203
             pass  # continue removing other devices
         finally:
             del devices[dev_id]
@@ -100,7 +176,7 @@ class NumatoUsbGpio:
     levels of ports, etc.
     """
 
-    def __init__(self, device="/dev/ttyACM0"):
+    def __init__(self, device: str = "/dev/ttyACM0") -> None:
         """Open a serial connection to a Numato device and initialize it."""
         self.dev_file = device
         self._ports = None
@@ -125,7 +201,7 @@ class NumatoUsbGpio:
             if self.can_notify:
                 self.notify = False
         except NumatoGpioError as err:
-            raise NumatoGpioError(
+            raise NumatoGpioError(  # noqa: TRY003
                 f"Device {self.dev_file} doesn't answer like a numato device: {err}",
             ) from err
 
@@ -135,7 +211,7 @@ class NumatoUsbGpio:
         return self._ser and self._ser.is_open
 
     @property
-    def ver(self):
+    def ver(self) -> str:
         """Return the device's version string."""
         if self._ver is None:
             with self._rw_lock:
@@ -143,7 +219,7 @@ class NumatoUsbGpio:
         return self._ver
 
     @property
-    def id(self):
+    def id(self) -> int:
         """Return the device id as integer value."""
         if not hasattr(self, "_id"):
             with self._rw_lock:
@@ -151,13 +227,13 @@ class NumatoUsbGpio:
         return self._id
 
     @id.setter
-    def id(self, new_id):
+    def id(self, new_id: int) -> None:
         """Re-program the device id to the value in new_id."""
         self._query_string(f"id set {new_id:08x}")
         self._id = new_id
 
     @property
-    def ports(self):
+    def ports(self) -> int:
         """Determine and return the number of ports of the Numato device.
 
         Devices with 8, 16, 32, 64 and 128 ports are available.
@@ -173,16 +249,16 @@ class NumatoUsbGpio:
             self._ports = hex_digits * 4
         return self._ports
 
-    def setup(self, port, direction):
+    def setup(self, port: int, *, direction: Direction) -> None:
         """Set up a single port as input or output port."""
         self._check_port_range(port)
         with self._rw_lock:
             new_iodir = (self._iodir & ((1 << port) ^ self._mask_all_ports)) | (
-                (0 if not direction else 1) << port
+                direction.value << port
             )
             self.iodir = new_iodir
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Reset all ports to input and close the serial connection.
 
         This is the safe state preventing short circuit of e.g. an enabled
@@ -195,7 +271,7 @@ class NumatoUsbGpio:
                 self.notify = False
             self._ser.close()
 
-    def write(self, port, value):
+    def write(self, port: int, *, value: int) -> None:
         """Write the logic level of a single port.
 
         Value can be 1 or True for high, 0 or False for low logic level.
@@ -203,13 +279,13 @@ class NumatoUsbGpio:
         self._check_port_range(port)
         with self._rw_lock:
             if (self._iodir >> port) & 1:
-                raise NumatoGpioError("Can't write to input port")
+                raise NumatoIoDirError(port)
             self._state = (self._state & ((1 << port) ^ self._mask_all_ports)) | (
-                (0 if not value else 1) << port
+                int(bool(value)) << port
             )
             self.writeall(self._state)
 
-    def read(self, port):
+    def read(self, port: int) -> int:
         """Read the logic level of a single port.
 
         Returns 1 for high or 0 for low level.
@@ -217,17 +293,14 @@ class NumatoUsbGpio:
         self._check_port_range(port)
         return 1 if self.readall() & (1 << port) else 0
 
-    def adc_read(self, adc_port):
+    def adc_read(self, adc_port: int) -> int:
         """Read the voltage level at a given ADC capable port.
 
         Available ADC ports and their resolutions are listed in the
         ADC_PORTS and ADC_RESOLUTION class variables.
         """
         if adc_port not in self.ADC_PORTS[self.ports]:
-            raise NumatoGpioError(
-                f"Can't read analog value from port {adc_port} - "
-                "that port does not provide an ADC.",
-            )
+            raise NumatoAdcPortError(adc_port)
         with self._rw_lock:
             # On devices with more than 32 ports, adc read command **only**
             # accepts two-digit numbers with leading zero.
@@ -236,25 +309,28 @@ class NumatoUsbGpio:
             # in the documentation:
             # https://numato.com/docs/64-channel-usb-gpio-module-analog-inputs/
             # https://numato.com/docs/128-channel-usb-gpio-module-with-analog-inputs/
-            digits = 2 if self.ports > 32 else 1
+            digits = self.ADC_READ_PORT_DIGITS[self.ports]
             query = f"adc read {adc_port:0{digits}}"
             self._query(query)
             try:
                 resp = self._read_response()
                 return int(resp)
             except ValueError as err:
-                raise NumatoGpioError(
-                    f"Query '{query!r}' returned unexpected result {resp!r}. "
-                    "Expected 10 bit decimal integer.",
+                raise NumatoUnexpectedResponseError(
+                    query,
+                    resp,
+                    why="Expected a 10 bit decimal integer.",
                 ) from err
 
     @property
-    def can_notify(self):
+    def can_notify(self) -> bool:
         """Determine whether notifications are supported by the particular device."""
-        return self.ports != 8
+        return (
+            self.ports != 8  # noqa: PLR2004
+        )  # TODO: Read notify capability from a device specification instead (issue #50)  # noqa: E501, FIX002, TD002
 
     @property
-    def notify(self):
+    def notify(self) -> bool:
         """Read the notify setting from the device if not already known."""
         if not self.can_notify:
             # notifications not supported on 8 port devices
@@ -270,14 +346,16 @@ class NumatoUsbGpio:
             elif response == "gpio notify disabled":
                 self._notify = False
             else:
-                raise NumatoGpioError(
-                    f"Expected enabled or disabled, but got: {response!r}",
+                raise NumatoUnexpectedResponseError(
+                    query,
+                    response,
+                    why="Expected enabled or disabled.",
                 )
 
         return self._notify
 
     @notify.setter
-    def notify(self, enable):
+    def notify(self, enable: bool) -> None:
         """Enable or disable asynchronous notifications on input port events.
 
         Callback functions for individual ports can be registered using the
@@ -286,7 +364,7 @@ class NumatoUsbGpio:
         """
         if not self.can_notify:
             # notifications not supported on 8 port devices
-            raise NumatoGpioError("Notify mode not supported on this device variant.")
+            raise NumatoNotifyNotSupportedError(self.ports)
 
         query = f"gpio notify {'on' if enable else 'off'}"
         expected_response = f"gpio notify {'enabled' if enable else 'disabled'}"
@@ -297,7 +375,12 @@ class NumatoUsbGpio:
 
         self._notify = enable
 
-    def add_event_detect(self, port, callback, edge=BOTH):
+    def add_event_detect(
+        self,
+        port: int,
+        callback: callable[[int, int], None],
+        edge: Edge = Edge.BOTH,
+    ) -> None:
         """Register a callback for async notifications on input port events.
 
         An event is triggered by a logic level changes of the particular input
@@ -305,13 +388,14 @@ class NumatoUsbGpio:
         notifications calling notify(True) on this device object.
         """
         if not self.can_notify:
-            raise NumatoGpioError(
-                "Can't install event callback. Device doesn't support notifications.",
+            raise NumatoNotifyNotSupportedError(
+                self.ports,
+                detail="Can't install event callback.",
             )
         self._callback[port] = callback
         self._edge[port] = edge
 
-    def remove_event_detect(self, port):
+    def remove_event_detect(self, port: int) -> None:
         """Remove a callback function for events on an input port.
 
         Stops asynchronous calls when that input port's logic level changes.
@@ -320,7 +404,7 @@ class NumatoUsbGpio:
         self._edge[port] = None
 
     @property
-    def iomask(self):
+    def iomask(self) -> int:
         """Return the previously set iomask.
 
         There's no get command for the iomask, so it's set in the constructor
@@ -329,7 +413,7 @@ class NumatoUsbGpio:
         return self._iomask
 
     @iomask.setter
-    def iomask(self, mask):
+    def iomask(self, mask: int) -> None:
         """Write the device's iomask to protect it from unwanted changes.
 
         Note that the iodir method changes the iomask. Reset the iomask after
@@ -341,14 +425,14 @@ class NumatoUsbGpio:
             self._iomask = mask
 
     @property
-    def iodir(self):
+    def iodir(self) -> int:
         """Get the I/O direction of the device's ports."""
         if not hasattr(self, "_iodir"):
             self._iodir = self._mask_all_ports
         return self._iodir
 
     @iodir.setter
-    def iodir(self, direction):
+    def iodir(self, direction: Direction) -> None:
         """Set the input/output port direction configuration for all ports.
 
         Uses the integer parameter direction as a bit vector with one bit per
@@ -364,7 +448,7 @@ class NumatoUsbGpio:
             self.iomask = direction ^ self._mask_all_ports
             self._iodir = direction
 
-    def readall(self):
+    def readall(self) -> int:
         """Read all ports at once.
 
         Returns a single int value to be interpreted as bit vector. Note that
@@ -376,7 +460,7 @@ class NumatoUsbGpio:
             self._state = response
         return self._state
 
-    def writeall(self, bits):
+    def writeall(self, bits: int) -> None:
         """Set the logic level of all ports at once.
 
         Uses the input parameter bits' integer value as 32 bit vector. Only
@@ -392,23 +476,21 @@ class NumatoUsbGpio:
     def _remove_eol(self, sequence: bytes) -> bytes:
         return bytes(x for x in sequence if x not in self.EOL_BYTES)
 
-    def _query(self, query):
+    def _query(self, query: str) -> None:
         with self._rw_lock:
             self._write(f"{query}\r".encode())
             try:
                 self._read_expected_string(query)
             except NumatoGpioError as err:
-                raise NumatoGpioError(
-                    f"Query {query!r} returned unexpected echo {str(err)!r}",
-                ) from err
+                raise NumatoQueryEchoError(query, str(err)) from err
 
-    def _write(self, query):
+    def _write(self, query: str) -> None:
         try:
             with self._rw_lock:
                 self._ser.write(query)
         except serial.serialutil.SerialException as err:
             self._ser.close()
-            raise NumatoGpioError("Serial communication failure") from err
+            raise NumatoSerialIoError(err) from err
 
     def _read_expected_string(self, expected: str) -> None:
         """Consume an exact string from the input buffer.
@@ -431,28 +513,28 @@ class NumatoUsbGpio:
         """
         with self._rw_lock:
             self._query(query)
-            response = self._read_response()
-            return response
+            return self._read_response()
 
-    def _read_int(self, query, bits):
+    def _read_int(self, query: str, bits: int) -> int:
         with self._rw_lock:
             response = self._query_string(query)
             try:
                 if len(response) != bits // 4:
-                    raise NumatoGpioError(
-                        f"Unexpected string {str(response)!r} "
-                        f"after successful query {query!r}",
+                    raise NumatoUnexpectedResponseError(
+                        query,
+                        response,
+                        why=f"Expected response of length {bits // 4}",
                     )
                 val = int(response, 16)
             except ValueError as err:
-                raise NumatoGpioError(
-                    f"Query '{query!r}' returned unexpected result "
-                    f"{response!r}. Expected a {bits} bit integer in "
-                    "hexadecimal notation.",
+                raise NumatoUnexpectedResponseError(
+                    query,
+                    response,
+                    why=f"Expected a {bits} bit integer in hexadecimal notation.",
                 ) from err
         return val
 
-    def _read_response(self, expected: Optional[str] = None):
+    def _read_response(self, expected: str | None = None) -> str:
         """Read a response up to the terminating prompt.
 
         Consume the prompt (>) character from the input buffer but do not return it.
@@ -461,12 +543,14 @@ class NumatoUsbGpio:
         while (read_byte := self._read_from_buf(1)) != ">":
             response += read_byte
         if expected and expected.lower() != response.lower():
-            raise NumatoGpioError(
-                f"Expected response {expected!r}, got {response!r}",
+            raise NumatoUnexpectedResponseError(
+                _query := "",
+                response,
+                why=f"Expected response {expected!r}",
             )
         return response
 
-    def _read_from_buf(self, num):
+    def _read_from_buf(self, num: int) -> str:
         self._can_read.acquire()
         while len(self._buf) < num:
             self._can_read.wait()
@@ -478,7 +562,7 @@ class NumatoUsbGpio:
         response = self._ser.read(num_bytes)
         return self._remove_eol(response)
 
-    def _read_notification(self):
+    def _read_notification(self) -> None:
         """Read a notification and call any registered callbacks.
 
         This method assumes that the leading '#' character has already been read.
@@ -495,26 +579,25 @@ class NumatoUsbGpio:
         self._serial_read(1)
         _ = int(self._serial_read(self.ports // 4), 16)  # read and discard iodir
 
-        assert current_value is not None and previous_value is not None
         edges = current_value ^ previous_value
 
-        def logic_level(port):
+        def logic_level(port: int) -> bool:
             return bool(current_value & (1 << port))
 
-        def edge_detected(port):
+        def edge_detected(port: int) -> bool:
             return bool(edges & (1 << port))
 
-        def edge_selected(port):
+        def edge_selected(port: int) -> bool:
             lv = logic_level(port)
-            return (lv and self._edge[port] in [RISING, BOTH]) or (
-                not lv and self._edge[port] in [FALLING, BOTH]
+            return (lv and self._edge[port] in [Edge.RISING, Edge.BOTH]) or (
+                not lv and self._edge[port] in [Edge.FALLING, Edge.BOTH]
             )
 
         for port in range(self.ports):
             if edge_detected(port) and edge_selected(port):
                 self._callback[port](port, logic_level(port))
 
-    def _poll(self):
+    def _poll(self) -> None:
         """Read data and process and notifications from the Numato device.
 
         Reads characters from the serial device and detects edge notifications
@@ -542,15 +625,15 @@ class NumatoUsbGpio:
         except (TypeError, serial.serialutil.SerialException):
             self._ser.close()  # ends the polling loop and its thread
 
-    def _check_port_range(self, port):
+    def _check_port_range(self, port: int) -> None:
         if port not in range(self.ports):
-            raise NumatoGpioError(f"Port number {port} out of range.")
+            raise NumatoPortOutOfRangeError(port)
 
-    def _drain_ser_buffer(self):
+    def _drain_ser_buffer(self) -> None:
         while self._serial_read(DEVICE_BUFFER_SIZE):
             pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return human readable string of the device's curent state."""
         return " | ".join(
             (
@@ -564,7 +647,17 @@ class NumatoUsbGpio:
             ),
         )
 
-    ADC_RESOLUTION = {
+    PORTS: ClassVar[list[int]] = [8, 16, 32, 64, 128]
+
+    ADC_READ_PORT_DIGITS: ClassVar[dict[int, int]] = {
+        8: 1,
+        16: 1,
+        32: 1,
+        64: 2,
+        128: 2,
+    }
+
+    ADC_RESOLUTION: ClassVar[dict[int, int]] = {
         8: 10,
         16: 10,
         32: 10,
@@ -572,7 +665,7 @@ class NumatoUsbGpio:
         128: 12,
     }
 
-    ADC_PORTS = {
+    ADC_PORTS: ClassVar[dict[int, str]] = {
         8: {
             0: "ADC0",
             1: "ADC1",

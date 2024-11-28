@@ -65,7 +65,7 @@ dev = gpio.NumatoUsbGpio("/dev/ttyACM0")
 
 # Configure port 4 as output and set it to high
 dev.setup(4, gpio.OUT)
-dev.write(4, 1)
+dev.write(4, value=1)
 
 # Configure port 27 as input and print its logic level
 dev.setup(27, gpio.IN)

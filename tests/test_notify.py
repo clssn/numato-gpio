@@ -1,14 +1,23 @@
-"""This module shall ensure that notifications are correctly handled anywhere in the input stream."""
+"""Ensure that notifications are correctly handled anywhere in the input stream."""
 
+from enum import Enum
 from unittest.mock import Mock
 
 import pytest
-from common import PORTS, Position
 
 import numato_gpio
 
 
-@pytest.mark.parametrize("ports", PORTS)
+# ruff: noqa: ANN001,INP001,S101
+class Position(Enum):
+    """Position to generate a notification."""
+
+    FRONT = 1
+    CENTER = 2
+    BACK = 3
+
+
+@pytest.mark.parametrize("ports", numato_gpio.NumatoUsbGpio.PORTS)
 @pytest.mark.parametrize(
     "position",
     [
@@ -18,21 +27,20 @@ import numato_gpio
     ],
 )
 @pytest.mark.usefixtures("mock_device")
-def test_notify(ports, position, monkeypatch):
+def test_notify(ports: int, position: int, monkeypatch) -> None:
     """Test notifications."""
     monkeypatch.setattr("serial.Serial.ports", ports)
     dev = numato_gpio.NumatoUsbGpio("/dev/ttyACMxx")
 
-    # expect devices that don't support notifications to raise (but still proceed with tests)
     if not dev.can_notify:
-        with pytest.raises(numato_gpio.NumatoGpioError):
+        with pytest.raises(numato_gpio.NumatoNotifyNotSupportedError):
             dev.notify = True
     else:
         dev.notify = True
 
     msg = b"gpio readall\r"
-    # Need the particular Serial (mock) instance created in the constructor of NumatoUsbGpio
-    serial_mock = dev._ser  # pylint: disable=protected-access
+    # Need the particular Serial (mock) instance created in NumatoUsbGpio constructor
+    serial_mock = dev._ser  # pylint: disable=protected-access  # noqa: SLF001
     msg_length = len(msg) - len("\r") + len(serial_mock.eol) * 2 + ports // 4
     if position == Position.FRONT:
         monkeypatch.setattr(serial_mock, "notify_inject_at", 0)
@@ -44,16 +52,16 @@ def test_notify(ports, position, monkeypatch):
     port_callbacks = []
     for p in range(ports):
         cb = Mock()
-        dev.setup(p, numato_gpio.IN)
+        dev.setup(p, direction=numato_gpio.Direction.IN)
         if dev.can_notify:
-            dev.add_event_detect(p, cb, numato_gpio.BOTH)
+            dev.add_event_detect(p, cb, numato_gpio.Edge.BOTH)
         else:
-            with pytest.raises(numato_gpio.NumatoGpioError):
-                dev.add_event_detect(p, cb, numato_gpio.BOTH)
+            with pytest.raises(numato_gpio.NumatoNotifyNotSupportedError):
+                dev.add_event_detect(p, cb, numato_gpio.Edge.BOTH)
         port_callbacks.append(cb)
     dev.readall()
     if dev.can_notify:
-        assert all(cb.called_with(p, True) for cb in port_callbacks)
+        assert all(cb.called_with(p, True) for cb in port_callbacks)  # noqa: FBT003
     else:
         assert not any(cb.called for cb in port_callbacks)
     dev.cleanup()

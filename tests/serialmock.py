@@ -1,7 +1,7 @@
 """Mockup for a pyserial object connected to a Numato USB GPIO device.
 
 Responds much like a device, with quite a few abstractions".
-"""
+"""  # noqa: INP001
 
 import random
 import threading
@@ -12,23 +12,27 @@ class SerialMock:
 
     ports = None
 
-    def respond(self, query):
+    @property
+    def _can_notify(self) -> bool:
+        return self.ports != (_num_device_ports_where_notify_unsupported := 8)
+
+    def respond(self, query: str) -> str:
         """Respond to a query, like a Numato device."""
         responses = {
             b"gpio notify off\r": b"gpio notify disabled\n>"
-            if self.ports != 8
+            if self._can_notify
             else b"",
-            b"gpio notify on\r": b"gpio notify enabled\n>" if self.ports != 8 else b"",
+            b"gpio notify on\r": b"gpio notify enabled\n>" if self._can_notify else b"",
             b"id get\r": b"00004711\n>",
             b"ver\r": b"00000008\n>",
-            b"gpio readall\r": f'{"0"*(self.ports//4)}\n>'.encode(),
-            f'gpio writeall {"0"*(self.ports//4)}\r'.encode(): b">",
-            f'gpio iomask {"0"*(self.ports//4)}\r'.encode(): b">",
-            f'gpio iomask {"f"*(self.ports//4)}\r'.encode(): b">",
-            f'gpio iomask {"F"*(self.ports//4)}\r'.encode(): b">",
-            f'gpio iodir {"0"*(self.ports//4)}\r'.encode(): b">",
-            f'gpio iodir {"f"*(self.ports//4)}\r'.encode(): b">",
-            f'gpio iodir {"F"*(self.ports//4)}\r'.encode(): b">",
+            b"gpio readall\r": f"{'0' * (self.ports // 4)}\n>".encode(),
+            f"gpio writeall {'0' * (self.ports // 4)}\r".encode(): b">",
+            f"gpio iomask {'0' * (self.ports // 4)}\r".encode(): b">",
+            f"gpio iomask {'f' * (self.ports // 4)}\r".encode(): b">",
+            f"gpio iomask {'F' * (self.ports // 4)}\r".encode(): b">",
+            f"gpio iodir {'0' * (self.ports // 4)}\r".encode(): b">",
+            f"gpio iodir {'f' * (self.ports // 4)}\r".encode(): b">",
+            f"gpio iodir {'F' * (self.ports // 4)}\r".encode(): b">",
         }
         resp = query.decode().replace("\r", self.eol)
         resp += responses[query].decode().replace("\n", self.eol)
@@ -41,7 +45,8 @@ class SerialMock:
             resp = resp[: self.notify_inject_at] + msg + resp[self.notify_inject_at :]
         return resp.encode()
 
-    def __init__(self, file, speed, timeout):
+    def __init__(self, file: str, speed: int, timeout: int) -> None:
+        """Initialize the pseudo serial object."""
         self.file = file
         self.speed = speed
         self.timeout = timeout
@@ -58,9 +63,9 @@ class SerialMock:
         Tests that line endings really don't play a role when reading the device output.
         """
         eol_chars = "\r\n"
-        return "".join(random.choices(eol_chars, k=random.randrange(0, 10)))
+        return "".join(random.choices(eol_chars, k=random.randrange(0, 10)))  # noqa: S311
 
-    def write(self, query):
+    def write(self, query: str) -> None:
         """Write to the mocked device.
 
         Processes the written data and generates the output in the buffer.
@@ -68,18 +73,18 @@ class SerialMock:
         with self.lock:
             self.buf += self.respond(query)
 
-            if query == b"gpio notify on\r" and self.ports != 8:
+            if query == b"gpio notify on\r" and self._can_notify:
                 self.notify = True
-            if query == b"gpio notify off\r" and self.ports != 8:
+            if query == b"gpio notify off\r" and self._can_notify:
                 self.notify = False
 
-    def read(self, size):
+    def read(self, size: int) -> str:
         """Read size bytes from the mocked device buffer."""
         with self.lock:
             size = min(size, len(self.buf))
             buf, self.buf = self.buf[:size], self.buf[size:]
         return buf
 
-    def close(self):
+    def close(self) -> None:
         """Close the mocked device."""
         self.is_open = False
