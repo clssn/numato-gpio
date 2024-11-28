@@ -1,10 +1,10 @@
 import os
 from unittest import mock
 
-import numato_gpio
 import pytest
-
 from common import PORTS
+
+import numato_gpio
 
 
 @pytest.mark.parametrize("ports", PORTS)

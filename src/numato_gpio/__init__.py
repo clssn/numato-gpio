@@ -67,7 +67,7 @@ def discover(dev_files=DEFAULT_DEVICES):
                 device_id = gpio.id
                 if device_id in devices:
                     raise NumatoGpioError(
-                        f"ACM device {device_file} has duplicate device id {device_id}"
+                        f"ACM device {device_file} has duplicate device id {device_id}",
                     )
 
                 # success -> add device
@@ -102,7 +102,6 @@ class NumatoUsbGpio:
 
     def __init__(self, device="/dev/ttyACM0"):
         """Open a serial connection to a Numato device and initialize it."""
-
         self.dev_file = device
         self._ports = None
         self._state = 0
@@ -127,7 +126,7 @@ class NumatoUsbGpio:
                 self.notify = False
         except NumatoGpioError as err:
             raise NumatoGpioError(
-                f"Device {self.dev_file} doesn't answer like a numato device: {err}"
+                f"Device {self.dev_file} doesn't answer like a numato device: {err}",
             ) from err
 
     @property
@@ -164,8 +163,9 @@ class NumatoUsbGpio:
         Devices with 8, 16, 32, 64 and 128 ports are available.
         The determined value is cached assuming the hardware doesn't change.
 
-                Returns:
-                        (int): Number of ports
+        Returns:
+            (int): Number of ports
+
         """
         if self._ports is None:
             response = self._query_string("gpio readall")
@@ -226,7 +226,7 @@ class NumatoUsbGpio:
         if adc_port not in self.ADC_PORTS[self.ports]:
             raise NumatoGpioError(
                 f"Can't read analog value from port {adc_port} - "
-                "that port does not provide an ADC."
+                "that port does not provide an ADC.",
             )
         with self._rw_lock:
             # On devices with more than 32 ports, adc read command **only**
@@ -244,8 +244,8 @@ class NumatoUsbGpio:
                 return int(resp)
             except ValueError as err:
                 raise NumatoGpioError(
-                    f"Query '{repr(query)}' returned unexpected result {repr(resp)}. "
-                    "Expected 10 bit decimal integer."
+                    f"Query '{query!r}' returned unexpected result {resp!r}. "
+                    "Expected 10 bit decimal integer.",
                 ) from err
 
     @property
@@ -271,7 +271,7 @@ class NumatoUsbGpio:
                 self._notify = False
             else:
                 raise NumatoGpioError(
-                    f"Expected enabled or disabled, but got: {repr(response)}"
+                    f"Expected enabled or disabled, but got: {response!r}",
                 )
 
         return self._notify
@@ -306,7 +306,7 @@ class NumatoUsbGpio:
         """
         if not self.can_notify:
             raise NumatoGpioError(
-                "Can't install event callback. Device doesn't support notifications."
+                "Can't install event callback. Device doesn't support notifications.",
             )
         self._callback[port] = callback
         self._edge[port] = edge
@@ -324,7 +324,8 @@ class NumatoUsbGpio:
         """Return the previously set iomask.
 
         There's no get command for the iomask, so it's set in the constructor
-        and its value is cached in a member variable _iomask."""
+        and its value is cached in a member variable _iomask.
+        """
         return self._iomask
 
     @iomask.setter
@@ -398,7 +399,7 @@ class NumatoUsbGpio:
                 self._read_expected_string(query)
             except NumatoGpioError as err:
                 raise NumatoGpioError(
-                    f"Query {repr(query)} returned unexpected echo {repr(str(err))}"
+                    f"Query {query!r} returned unexpected echo {str(err)!r}",
                 ) from err
 
     def _write(self, query):
@@ -439,15 +440,15 @@ class NumatoUsbGpio:
             try:
                 if len(response) != bits // 4:
                     raise NumatoGpioError(
-                        f"Unexpected string {repr(str(response))} "
-                        f"after successful query {repr(query)}"
+                        f"Unexpected string {str(response)!r} "
+                        f"after successful query {query!r}",
                     )
                 val = int(response, 16)
             except ValueError as err:
                 raise NumatoGpioError(
-                    f"Query '{repr(query)}' returned unexpected result "
-                    f"{repr(response)}. Expected a {bits} bit integer in "
-                    "hexadecimal notation."
+                    f"Query '{query!r}' returned unexpected result "
+                    f"{response!r}. Expected a {bits} bit integer in "
+                    "hexadecimal notation.",
                 ) from err
         return val
 
@@ -461,7 +462,7 @@ class NumatoUsbGpio:
             response += read_byte
         if expected and expected.lower() != response.lower():
             raise NumatoGpioError(
-                f"Expected response {repr(expected)}, got {repr(response)}"
+                f"Expected response {expected!r}, got {response!r}",
             )
         return response
 
@@ -513,7 +514,7 @@ class NumatoUsbGpio:
             if edge_detected(port) and edge_selected(port):
                 self._callback[port](port, logic_level(port))
 
-    def _poll(self):  # noqa: C901
+    def _poll(self):
         """Read data and process and notifications from the Numato device.
 
         Reads characters from the serial device and detects edge notifications
@@ -560,7 +561,7 @@ class NumatoUsbGpio:
                 f"iodir: 0x{self.iodir:0{self._hex_digits}x} ",
                 f"iomask: 0x{self.iomask:0{self._hex_digits}x}",
                 f"state: 0x{self._state:0{self._hex_digits}x}",
-            )
+            ),
         )
 
     ADC_RESOLUTION = {

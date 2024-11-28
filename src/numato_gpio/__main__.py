@@ -1,6 +1,6 @@
 """Main module printing detected numato devices on the command-line."""
 
-from numato_gpio import discover, cleanup, devices
+from numato_gpio import cleanup, devices, discover
 
 
 def main():
