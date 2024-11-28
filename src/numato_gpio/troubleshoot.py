@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 def main():
-
     if len(sys.argv) != 3:
         print(f"\nUsage: {sys.argv[0]} DEVICE PORTS")
         print()
@@ -20,16 +19,16 @@ def main():
 
     try:
         ports = int(sys.argv[2])
-        if ports not in [2 ** x for x in range(3, 8)]:
+        if ports not in [2**x for x in range(3, 8)]:
             raise ValueError()
-    except (ValueError):
+    except ValueError:
         print("Number of IO ports needs to be 8, 16, 32, 64 or 128")
         exit(1)
 
     commands = [
         b"id get\r",
         b"ver\r",
-        "gpio iomask {:0{dgts}x}\r".format(2 ** ports - 1, dgts=ports // 4).encode(),
+        "gpio iomask {:0{dgts}x}\r".format(2**ports - 1, dgts=ports // 4).encode(),
         "gpio iomask {:0{dgts}x}\r".format(0, dgts=ports // 4).encode(),
         b"gpio readall\r",
     ]

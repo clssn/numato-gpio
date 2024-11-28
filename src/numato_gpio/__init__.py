@@ -526,7 +526,6 @@ class NumatoUsbGpio:
         """
         try:
             while self._ser and self._ser.is_open:
-
                 if not (b := self._serial_read(1).decode()):
                     continue
 

@@ -2,8 +2,10 @@
 
 Responds much like a device, with quite a few abstractions".
 """
+
 import random
 import threading
+
 
 class SerialMock:
     """Mockup for a Numato USB IO expander device behind a serial device."""
@@ -16,9 +18,7 @@ class SerialMock:
             b"gpio notify off\r": b"gpio notify disabled\n>"
             if self.ports != 8
             else b"",
-            b"gpio notify on\r": b"gpio notify enabled\n>"
-            if self.ports != 8
-            else b"",
+            b"gpio notify on\r": b"gpio notify enabled\n>" if self.ports != 8 else b"",
             b"id get\r": b"00004711\n>",
             b"ver\r": b"00000008\n>",
             b"gpio readall\r": f'{"0"*(self.ports//4)}\n>'.encode(),
@@ -38,9 +38,7 @@ class SerialMock:
                 xff="F" * (self.ports // 4),
                 x00="0" * (self.ports // 4),
             )
-            resp = (
-                resp[: self.notify_inject_at] + msg + resp[self.notify_inject_at :]
-            )
+            resp = resp[: self.notify_inject_at] + msg + resp[self.notify_inject_at :]
         return resp.encode()
 
     def __init__(self, file, speed, timeout):
@@ -59,7 +57,7 @@ class SerialMock:
 
         Tests that line endings really don't play a role when reading the device output.
         """
-        eol_chars="\r\n"
+        eol_chars = "\r\n"
         return "".join(random.choices(eol_chars, k=random.randrange(0, 10)))
 
     def write(self, query):
@@ -67,7 +65,6 @@ class SerialMock:
 
         Processes the written data and generates the output in the buffer."""
         with self.lock:
-
             self.buf += self.respond(query)
 
             if query == b"gpio notify on\r" and self.ports != 8:

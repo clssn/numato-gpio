@@ -1,4 +1,5 @@
 """Main module printing detected numato devices on the command-line."""
+
 from numato_gpio import discover, cleanup, devices
 
 
