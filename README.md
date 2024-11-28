@@ -29,7 +29,7 @@ Or install latest release:
 
     pipx install numato-gpio
 
-## Usage CLI
+## Usage of the CLI
 
 Test whether your devices can be found running the command-line interface like
 `numato-discover`. Remember to have your user in the `dialout` group,
@@ -110,27 +110,27 @@ issues are only the ones the author is aware of:
 
 ## Install development environment
 
-If you plan to make a contribution you should use `poetry` to set-up your
+If you plan to make a contribution you should use `uv` to set-up your
 development environment. So first make sure to install the tool if you don't
 have it already.
 
-    pip install poetry
+    make uv
 
-Then have poetry install the dependencies and the numato-project (editable) in a
+Then have uv install the dependencies and the numato-project (editable) in a
 virtualenv.
 
-    poetry install
+    uv sync
 
 You can now activate the virtualenv (.venv directory) like
 
-    poetry shell
+    source .venv/bin/activate
 
 If you use VSCode or similar IDEs, ensure that their Python environment is
 configured to the .venv directory so their tools, like Debugger, Test Explorer
 etc., work.
 
-Note that all commands of the Makefile are using `poetry run`, so you don't have
-to run `poetry shell` before calling them.
+Note that all commands of the Makefile are using `uv run` or `uvx`, so you
+don't have to activate the virtualenv before calling them.
 
 ## System Tests
 
@@ -142,12 +142,12 @@ and will just fail, if no device is connected. They are an important complement
 to unit tests, because they are *the real thing* and might behave differently
 than the mockup device for the unit tests.
 
-If you consider to run system tests you should be aware that it may be dangerous
-running them.
+If you consider to run system tests you should be aware that it may be
+dangerous running them.
 
 ---
 **WARNING**
 
-Only run the system tests with *gpio ports disconnected*! You otherwise risk
-a short circuit which may lead to damage or destruction of your device or worse.
+Only run the system tests with *gpio ports disconnected*! You otherwise risk a
+short circuit which may lead to damage or destruction of your device or worse.
 ---

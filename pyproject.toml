@@ -1,38 +1,35 @@
-[tool.poetry]
+[project]
 name = "numato-gpio"
-version = "0.13.0"
+version = "0.13.1dev0"
 description = "Python API for Numato GPIO Expanders"
-authors = ["Henning Claßen <code@clssn.de>"]
-license = "MIT License"
+authors = [{name = "Henning Claßen", email = "code@clssn.de"}]
+license = "MIT"
 readme = "README.md"
-
+requires-python = ">=3.8"
 classifiers=[
     "Programming Language :: Python :: 3.8",
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+    "pyserial>=3.1,<4",
 ]
 
 [project.urls]
 Homepage = "https://github.com/clssn/numato-gpio"
 Repository = "https://github.com/clssn/numato-gpio.git"
 
-[tool.poetry.scripts]
+
+[project.scripts]
 numato-discover = "numato_gpio.__main__:main"
 
-[tool.poetry.dependencies]
-python = "^3.8.1"
-pyserial = "^3.1"
-
-[tool.poetry.group.dev.dependencies]
-black = ">=23.7,<25.0"
-pytest = "^7.4.0"
-flake8 = "^6.1.0"
-bandit = "^1.7.5"
-pytest-xdist = "^3.5.0"
-pytest-cov = "^4.1.0"
-pylint = "^3.1.0"
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-cov>=5.0.0",
+    "pytest-xdist>=3.6.1",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
+requires = ["hatchling"]
+build-backend = "hatchling.build"
