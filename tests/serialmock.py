@@ -63,7 +63,8 @@ class SerialMock:
     def write(self, query):
         """Write to the mocked device.
 
-        Processes the written data and generates the output in the buffer."""
+        Processes the written data and generates the output in the buffer.
+        """
         with self.lock:
             self.buf += self.respond(query)
 

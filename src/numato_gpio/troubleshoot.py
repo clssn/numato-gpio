@@ -1,6 +1,7 @@
-import serial
 import sys
 from pathlib import Path
+
+import serial
 
 
 def main():
@@ -20,7 +21,7 @@ def main():
     try:
         ports = int(sys.argv[2])
         if ports not in [2**x for x in range(3, 8)]:
-            raise ValueError()
+            raise ValueError
     except ValueError:
         print("Number of IO ports needs to be 8, 16, 32, 64 or 128")
         exit(1)
