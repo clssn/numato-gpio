@@ -14,5 +14,8 @@
     ],
     "editor.formatOnSave": true,
     "editor.wordBasedSuggestions": "off"
-  }
+  },
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true
 }
