@@ -7,6 +7,13 @@ release, breaking changes will increment the minor version only. This is likely
 to happen quite often until things have settled down and a certain degree of
 maturity is established.
 
+Unreleased
+----------
+
+- Use uv and ruff for project/dependency management and formatting/linting
+- Fix or disable issues detected by ruff
+- Add type annotation
+
 Release 0.13.0
 --------------
 
