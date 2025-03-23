@@ -5,11 +5,16 @@ description = "Python API for Numato GPIO Expanders"
 authors = [{name = "Henning Claßen", email = "code@clssn.de"}]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9,<3.14"
 classifiers=[
     "Programming Language :: Python :: 3.8",
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13"
 ]
 dependencies = [
     "pyserial>=3.1,<4",
