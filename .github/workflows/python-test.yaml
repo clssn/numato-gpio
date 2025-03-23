@@ -21,7 +21,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Test
-        run: make test
+        run: uv run --python=${{ matrix.python-version }} pytest tests/
 
       - name: Check Format
         run: uvx ruff format --check
