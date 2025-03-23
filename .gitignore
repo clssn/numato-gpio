@@ -9,7 +9,6 @@ dist
 # virtual/test environments
 src/*.egg-info
 .venv
-.tox/
 
 # coverage
 doc/htmlcov
