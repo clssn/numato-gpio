@@ -4,7 +4,7 @@ on:
   push:
 
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,11 +20,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Test
-        run: uv run --python=${{ matrix.python-version }} pytest tests/
-
-      - name: Check Format
+      - name: Format
         run: uvx ruff format --check
 
       - name: Lint
-        run: uvx ruff check --select=ALL --no-fix
+        run: uvx ruff check --no-fix
+
+      - name: Test
+        run: uv run --python=${{ matrix.python-version }} pytest tests/
