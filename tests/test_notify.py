@@ -61,7 +61,8 @@ def test_notify(ports: int, position: int, monkeypatch) -> None:
         port_callbacks.append(cb)
     dev.readall()
     if dev.can_notify:
-        assert all(cb.called_with(p, True) for cb in port_callbacks)  # noqa: FBT003
+        for p, cb in enumerate(port_callbacks):
+            cb.assert_called_with(p, True)  # noqa: FBT003
     else:
         assert not any(cb.called for cb in port_callbacks)
     dev.cleanup()
