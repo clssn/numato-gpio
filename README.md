@@ -18,26 +18,48 @@ GPIO expander devices with [8](https://numato.com/product/8-channel-usb-gpio-mod
 
 See the [changelog](changelog.md) for details on the releases.
 
-## Installation using pipx
 
-Install pipx if you don't have it. It isolates your python tools' dependencies.
+## Install uv
 
-    pip install pipx
-    pipx ensurepath  # helps the shell to find the tools by adding ~/.local/bin to the path
+Uv is currently by far the fastest and most modern Python project and dependency
+management tool written in Rust and inspired by Rust's `cargo`. `uv` covers the
+whole Python development environment including but not limited to installation
+of Python interpreters, dependency-version and package management and
+transparent isolation in virtual environments. It also enables one-off
+executions of packages with `uvx`.
 
-Install latest development version:
+---
+**Note:**
 
-    pipx install git+https://github.com/clssn/numato-gpio.git
+This readme, only covers the Linux operating system. Refer to the [uv
+documentation](https://docs.astral.sh/uv/getting-started/installation/#installing-uv)
+to learn how to install and use uv on MacOS or Windows. Keep in mind
+though that the specifics of device accessibilty typically vary across
+operating systems and numato-gpio is at present only tested on Linux.
 
-Or install latest release:
+---
 
-    pipx install numato-gpio
+To install uv, you'll only need curl and a shell, which should already be
+present on basically any Linux installation.
 
-## Usage of the CLI
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-Test whether your devices can be found running the command-line interface like
-`numato-discover`. Remember to have your user in the `dialout` group,
-since the devices are registered as /dev/ttyACMx (i.e. modem devices).
+
+## Preparation
+
+First, attach the numato device via USB. Ensure you've got read/write access to
+the device. With `dmesg` you can find out which device file the board was made
+available by after attaching it, e.g. `/dev/ttyACM0`. With `ls -l /dev/ttyACM0`
+you'll then be able to see which user and group the device file belongs to and
+see the permission. Usually the device will be owned by user `root` and group
+`dialout`. The common way of getting r/w permission for your user is, to join the
+`dialout` group like `sudo adduser your_username dialout`.
+
+## One-off exection of numato-gpio's numato-discover with uvx
+
+To test whether your devices can be found, run the command-line interface like
+
+    `uvx --from numato-gpio numato-discover`.
 
 Expected output:
 
@@ -114,14 +136,8 @@ issues are only the ones the author is aware of:
 
 ## Install development environment
 
-If you plan to make a contribution you should use `uv` to set-up your
-development environment. So first make sure to install the tool if you don't
-have it already.
-
-    make uv
-
-Then have uv install the dependencies and the numato-project (editable) in a
-virtualenv.
+If you plan to make a contribution use `uv` to set-up your development having uv
+install the dependencies and the numato-project (editable) in a virtualenv.
 
     uv sync
 
