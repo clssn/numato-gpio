@@ -3,13 +3,17 @@
 
 # Python API for Numato GPIO Expanders
 
-This Python API can be used to control [Numato USB
-GPIO expanders](https://numato.com/product/32-channel-usb-gpio-module-with-analog-inputs).
+This Python API can be used to control Numato USB
+GPIO expander devices with [8](https://numato.com/product/8-channel-usb-gpio-module-with-analog-inputs),
+[16](https://numato.com/product/16-channel-usb-gpio-module-with-analog-inputs),
+[32](https://numato.com/product/32-channel-usb-gpio-module-with-analog-inputs),
+[64](https://numato.com/product/64-channel-usb-gpio-module-with-analog-inputs), and
+[128](https://numato.com/product/128-channel-usb-gpio-module-with-analog-inputs) Ports.
 
 * Configure ports as input or output port
 * Write to output ports
 * Read from input ports
-* Read integer values from ADC input ports (1 - 7)
+* Read integer values from ADC input ports
 * Register a callback for input port events (edge detection)
 
 See the [changelog](changelog.md) for details on the releases.
