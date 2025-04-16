@@ -6,12 +6,10 @@
   "configurations": [
     {
       "name": "Pytest [unit tests]",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": [
-        "tests"
-      ]
+      "args": ["tests"]
     }
   ]
 }
