@@ -6,6 +6,9 @@ on: # yamllint: ignore
     types: [published]
 
 jobs:
+  test:
+    uses: ./.github/workflows/python-test.yaml
+
   deploy:
     runs-on: ubuntu-latest
 
