@@ -1,8 +1,9 @@
-.PHONY: curl uv format check usage test sys-test coverage browse-coverage clean extraclean
+.PHONY: curl uv format check usage test sys-test coverage browse-coverage clean extraclean setup
 usage:
 	@echo ""
 	@echo "Project maintenance targets:"
 	@echo ""
+	@echo "  setup       Install pre-commit hook"
 	@echo "  test        Run all unit-tests"
 	@echo "  sys-test    Run all system-tests (with a device connected)"
 	@echo "  release     Author a release commit and create the tag"
@@ -15,6 +16,9 @@ curl:
 
 uv: curl
 	@which uv > /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+
+setup: uv
+	uvx pre-commit install
 
 git:
 	@which git > /dev/null || (echo "You need to install for this command to work." && exit 1)
