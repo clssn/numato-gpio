@@ -24,3 +24,11 @@ repos:
       - id: prettier
         additional_dependencies: ["prettier"]
         files: "\\.json$"
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: Type checking with mypy
+        entry: mypy
+        language: system
+        types: [python]

@@ -5,6 +5,7 @@
     "github.vscode-github-actions",
     "GitHub.vscode-pull-request-github",
     "ms-python.debugpy",
+    "ms-python.mypy-type-checker",
     "ms-python.python",
     "ms-python.vscode-pylance",
     "redhat.vscode-yaml",

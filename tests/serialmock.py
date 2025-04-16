@@ -7,6 +7,10 @@ import random
 import threading
 
 
+class SerialMockNotInitializedError(RuntimeError):
+    """Error raised from a SerialMock object that wasn't properly initialized."""
+
+
 class SerialMock:
     """Mockup for a Numato USB IO expander device behind a serial device."""
 
@@ -16,8 +20,12 @@ class SerialMock:
     def _can_notify(self) -> bool:
         return self.ports != (_num_device_ports_where_notify_unsupported := 8)
 
-    def respond(self, query: str) -> str:
+    def respond(self, query: str) -> bytes:
         """Respond to a query, like a Numato device."""
+        if self.ports is None:
+            msg = "SerialMock ports is None"
+            raise SerialMockNotInitializedError(msg)
+
         responses = {
             b"gpio notify off\r": b"gpio notify disabled\n>"
             if self._can_notify
@@ -78,7 +86,7 @@ class SerialMock:
             if query == b"gpio notify off\r" and self._can_notify:
                 self.notify = False
 
-    def read(self, size: int) -> str:
+    def read(self, size: int) -> bytes:
         """Read size bytes from the mocked device buffer."""
         with self.lock:
             size = min(size, len(self.buf))

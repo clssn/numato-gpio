@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 from contextlib import suppress
 from enum import Enum
-from typing import ClassVar
+from typing import Callable, ClassVar
 
 import serial
 
@@ -32,7 +32,7 @@ ACM_DEVICE_RANGE = range(10)
 DEVICE_BUFFER_SIZE = 1000000
 DEFAULT_DEVICES = [f"/dev/ttyACM{i}" for i in ACM_DEVICE_RANGE]
 
-devices = {}
+devices: dict[int, NumatoUsbGpio] = {}
 
 
 class NumatoGpioError(RuntimeError):
@@ -192,8 +192,8 @@ class NumatoUsbGpio:
         self._poll_thread.start()
         self._mask_all_ports = 2**self.ports - 1
         self._hex_digits = self.ports // 4
-        self._callback = [0] * self.ports
-        self._edge = [None] * self.ports
+        self._callback: list[Callable[[int, int], None] | None] = [None] * self.ports
+        self._edge: list[Edge | None] = [None] * self.ports
         self._ver = None
         try:
             _ = self.id
@@ -300,7 +300,7 @@ class NumatoUsbGpio:
         Available ADC ports and their resolutions are listed in the
         ADC_PORTS and ADC_RESOLUTION class variables.
         """
-        if adc_port not in self.ADC_PORTS[self.ports]:
+        if str(adc_port) not in self.ADC_PORTS[self.ports]:
             raise NumatoAdcPortError(adc_port)
         with self._rw_lock:
             # On devices with more than 32 ports, adc read command **only**
@@ -379,7 +379,7 @@ class NumatoUsbGpio:
     def add_event_detect(
         self,
         port: int,
-        callback: callable[[int, int], None],
+        callback: Callable[[int, int], None],
         edge: Edge = Edge.BOTH,
     ) -> None:
         """Register a callback for async notifications on input port events.
@@ -485,7 +485,7 @@ class NumatoUsbGpio:
             except NumatoGpioError as err:
                 raise NumatoQueryEchoError(query, str(err)) from err
 
-    def _write(self, query: str) -> None:
+    def _write(self, query: bytes) -> None:
         try:
             with self._rw_lock:
                 self._ser.write(query)
@@ -596,8 +596,12 @@ class NumatoUsbGpio:
             )
 
         for port in range(self.ports):
-            if edge_detected(port) and edge_selected(port):
-                self._callback[port](port, logic_level(port))
+            if (
+                edge_detected(port)
+                and edge_selected(port)
+                and (cb := self._callback[port]) is not None
+            ):
+                cb(port, logic_level(port))
 
     def _poll(self) -> None:
         """Read data and process and notifications from the Numato device.
@@ -668,7 +672,7 @@ class NumatoUsbGpio:
         128: 12,
     }
 
-    ADC_PORTS: ClassVar[dict[int, str]] = {
+    ADC_PORTS: ClassVar[dict[int, dict[int, str]]] = {
         8: {
             0: "ADC0",
             1: "ADC1",
