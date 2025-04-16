@@ -18,6 +18,7 @@ classifiers=[
 ]
 dependencies = [
     "pyserial>=3.1,<4",
+    "rich>=14.0.0",
 ]
 
 [project.urls]

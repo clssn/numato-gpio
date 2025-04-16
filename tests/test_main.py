@@ -20,5 +20,6 @@ def test_main(ports: int, monkeypatch, capsys) -> None:
 
         main()
         cap = capsys.readouterr()
-        assert cap.out.startswith(f"Discovered devices: {os.linesep}dev: /dev/ttyACMxx")
+        assert cap.out.startswith("numato-gpio")
+        assert f"Discovered devices: {os.linesep}dev: /dev/ttyACMxx" in cap.out
         assert cap.err == ""
