@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from contextlib import suppress
 from enum import Enum
 from typing import ClassVar
 
@@ -488,8 +489,9 @@ class NumatoUsbGpio:
         try:
             with self._rw_lock:
                 self._ser.write(query)
-        except serial.serialutil.SerialException as err:
-            self._ser.close()
+        except serial.SerialException as err:
+            with suppress(OSError):
+                self._ser.close()
             raise NumatoSerialIoError(err) from err
 
     def _read_expected_string(self, expected: str) -> None:
@@ -622,8 +624,9 @@ class NumatoUsbGpio:
 
                 self._read_notification()
 
-        except (TypeError, serial.serialutil.SerialException):
-            self._ser.close()  # ends the polling loop and its thread
+        except (TypeError, serial.SerialException):
+            with suppress(OSError):
+                self._ser.close()  # ends the polling loop and its thread
 
     def _check_port_range(self, port: int) -> None:
         if port not in range(self.ports):
