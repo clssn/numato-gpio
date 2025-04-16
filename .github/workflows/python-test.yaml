@@ -4,6 +4,26 @@ on:
   push:
 
 jobs:
+  clean-code:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Format
+        run: uvx ruff format --check
+
+      - name: Lint
+        run: uvx ruff check --no-fix
+
+      - name: Pre-commit
+        run: uvx pre-commit run --all
+
   tests:
     runs-on: ubuntu-latest
     concurrency:
@@ -19,12 +39,6 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
-
-      - name: Format
-        run: uvx ruff format --check
-
-      - name: Lint
-        run: uvx ruff check --no-fix
 
       - name: Test
         run: uv run --python=${{ matrix.python-version }} pytest tests/
