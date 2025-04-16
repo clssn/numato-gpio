@@ -31,6 +31,7 @@ numato-discover = "numato_gpio.__main__:main"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.15.0",
     "pytest>=8.3.3",
     "pytest-cov>=5.0.0",
     "pytest-xdist>=3.6.1",
@@ -43,3 +44,8 @@ build-backend = "hatchling.build"
 [tool.ruff]
 lint.select = ["ALL"]
 lint.ignore = ["COM812", "ISC001", "D211", "D213", "D203", "EM102"]
+
+[tool.mypy]
+strict = false
+ignore_missing_imports = true
+warn_unused_ignores = true

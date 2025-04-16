@@ -53,7 +53,7 @@ def main() -> None:
     print(f"Testing device {device} with pyserial=={serial.__version__}\n")
     for command in commands:
         ser = serial.Serial(device, 19200, timeout=0.1)
-        print(f"writing to {device}: {command}")
+        print(f"writing to {device}: {command.decode()}")
         ser.write(command)
         buf = ser.read(read_max)
         print(f"response ({len(buf)} byte):\n{buf}")
