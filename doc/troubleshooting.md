@@ -53,14 +53,12 @@ collect information about the problem before opening an issue.
 
     Kill the screen session with `Ctrl+a k`.
 
-6. Install the latest development version of `numato-gpio` Python package as
-   explained in the [README](../README.md#Install) and run it like `python3 -m
-   numato_gpio`. The output should be like:
+6. Install uv as described in the [README](../README.md) and run `uvx --from https://github.com/clssn/numato-gpio.git numato-discover`. The output should be like:
 
         Discovered devices:
         dev: /dev/ttyACM0 | id: 2 | ver: 9 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
 
-7. If 6. wasn't successful, run `python3 -m numato_gpio.troubleshoot`. Make
+7. If 6. wasn't successful, make sure to clone this repository and `uv run scripts/troubleshoot.py`. Make
    sure to include the output in your issue.
 
 # Contact me
