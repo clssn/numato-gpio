@@ -1,7 +1,6 @@
 {
   "python.testing.pytestArgs": ["-n 1", "tests", "sys_tests"],
   "python.testing.unittestEnabled": false,
-  "python.testing.nosetestsEnabled": false,
   "python.testing.pytestEnabled": true,
   "[python]": {
     "diffEditor.ignoreTrimWhitespace": false,
@@ -30,5 +29,6 @@
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
-  "search.useIgnoreFiles": true
+  "search.useIgnoreFiles": true,
+  "diffEditor.ignoreTrimWhitespace": false
 }
