@@ -35,6 +35,9 @@ jobs:
       - name: Pre-commit
         run: uv run uvx pre-commit run --all
 
+      - name: Validate Numato documentation URLs
+        run: uv run scripts/broken_urls.py
+
       - name: Print github context
         run: |
           echo ${gh_context_json} | jq
