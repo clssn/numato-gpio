@@ -1,3 +1,4 @@
+---
 name: Tests
 
 on:
@@ -5,15 +6,23 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [edited]
   workflow_call:
 
 jobs:
   clean-code:
+    if: >
+      contains(github.event.pull_request.body,'- [x] Run code checks now')
+      && contains(github.event.changes.body.from, '- [ ] Run code checks now')
+
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
+      - name: Dump github context
+        run: echo '${{ toJson(github) }}'
+
       - uses: actions/checkout@v3
 
       - name: Install uv
@@ -27,6 +36,9 @@ jobs:
 
       - name: Pre-commit
         run: uv run uvx pre-commit run --all
+
+      - name: Print github context
+        run: echo '${{ toJson(github) }}'
 
   tests:
     needs: clean-code
