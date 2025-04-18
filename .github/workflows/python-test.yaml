@@ -20,8 +20,6 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - name: Dump github context
-        run: echo '${{ toJson(github) }}'
 
       - uses: actions/checkout@v3
 
@@ -37,8 +35,14 @@ jobs:
       - name: Pre-commit
         run: uv run uvx pre-commit run --all
 
+      - name: Validate Numato documentation URLs
+        run: uv run scripts/broken_urls.py
+
       - name: Print github context
-        run: echo '${{ toJson(github) }}'
+        run: |
+          echo ${gh_context_json} | jq
+        env:
+          gh_context_json: ${{ toJson(github) }}
 
   tests:
     needs: clean-code
