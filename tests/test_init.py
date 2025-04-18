@@ -3,18 +3,19 @@
 import pytest
 
 import numato_gpio
+from numato_gpio.device_types import DeviceType
 
 # ruff: noqa: ANN001,INP001,S101
 
 
 @pytest.mark.usefixtures("mock_device")
-@pytest.mark.parametrize("ports", numato_gpio.NumatoUsbGpio.PORTS)
-def test_instatiate_cleanup(ports, monkeypatch) -> None:
+@pytest.mark.parametrize("device_type", set(DeviceType))
+def test_instatiate_cleanup(device_type: DeviceType, monkeypatch) -> None:
     """A numato device mockup shall be initializable and properly cleaned up.
 
     This shall be possible for devices of any number of ports and not raise.
     """
-    monkeypatch.setattr("serial.Serial.ports", ports)
+    monkeypatch.setattr("serial.Serial.ports", device_type.value.ports)
     dev = numato_gpio.NumatoUsbGpio("/dev/ttyACMxx")
     dev.cleanup()
 
@@ -37,15 +38,15 @@ def test_write(monkeypatch) -> None:
 
 
 @pytest.mark.usefixtures("mock_device")
-@pytest.mark.parametrize("ports", numato_gpio.NumatoUsbGpio.PORTS)
-def test_notify(monkeypatch, ports) -> None:
+@pytest.mark.parametrize("device_type", set(DeviceType))
+def test_notify(monkeypatch, device_type: DeviceType) -> None:
     """Notification setup success shall depend on device's notifications support.
 
     NumatoGpioError shall be raised when trying to use any notification API.
     """
-    monkeypatch.setattr("serial.Serial.ports", ports)
+    monkeypatch.setattr("serial.Serial.ports", device_type.value.ports)
     dev = numato_gpio.NumatoUsbGpio("/dev/ttyACMxx")
-    if dev.can_notify:
+    if dev.spec.supports_notification:
         dev.notify = True
     else:
         with pytest.raises(numato_gpio.NumatoNotifyNotSupportedError):
