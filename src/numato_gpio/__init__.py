@@ -5,9 +5,12 @@ from __future__ import annotations
 import threading
 from contextlib import suppress
 from enum import Enum
-from typing import Callable, ClassVar
+from functools import cached_property
+from typing import Callable
 
 import serial
+
+from numato_gpio import device_types
 
 
 class Edge(Enum):
@@ -71,10 +74,11 @@ class NumatoUnexpectedResponseError(NumatoGpioError):
 class NumatoNotifyNotSupportedError(NumatoGpioError):
     """Notify mode is not supported error."""
 
-    def __init__(self, port: int, detail: str = "") -> None:
-        """Initialize error message detailing the device type by number of ports."""
+    def __init__(self, spec: device_types.DeviceSpec, detail: str = "") -> None:
+        """Initialize error message mentioning the device name and docs URL."""
         super().__init__(
-            f"Notify mode not supported on an {port} port device. {detail}",
+            f"Notify mode not supported on a {spec.name}. {detail}"
+            f"\nSee device docs: {spec.url}",
         )
 
 
@@ -180,7 +184,7 @@ class NumatoUsbGpio:
     def __init__(self, device: str = "/dev/ttyACM0") -> None:
         """Open a serial connection to a Numato device and initialize it."""
         self.dev_file = device
-        self._ports = None
+        self._device_spec = None
         self._state = 0
         self._buf = ""
         self._poll_thread = threading.Thread(target=self._poll, daemon=True)
@@ -190,16 +194,18 @@ class NumatoUsbGpio:
         self._write(b"gpio notify off\r")
         self._drain_ser_buffer()
         self._poll_thread.start()
-        self._mask_all_ports = 2**self.ports - 1
-        self._hex_digits = self.ports // 4
-        self._callback: list[Callable[[int, int], None] | None] = [None] * self.ports
-        self._edge: list[Edge | None] = [None] * self.ports
+        self._mask_all_ports = 2**self.spec.ports - 1
+        self._hex_digits = self.spec.ports // 4
+        self._callback: list[Callable[[int, int], None] | None] = [
+            None
+        ] * self.spec.ports
+        self._edge: list[Edge | None] = [None] * self.spec.ports
         self._ver = None
         try:
             _ = self.id
             _ = self.ver
             self.iodir = self._mask_all_ports  # resets iomask as well
-            if self.can_notify:
+            if self.spec.supports_notification:
                 self.notify = False
         except NumatoGpioError as err:
             raise NumatoGpioError(  # noqa: TRY003
@@ -233,22 +239,21 @@ class NumatoUsbGpio:
         self._query_string(f"id set {new_id:08x}")
         self._id = new_id
 
-    @property
-    def ports(self) -> int:
-        """Determine and return the number of ports of the Numato device.
+    @cached_property
+    def spec(self) -> device_types.DeviceSpec:
+        """Determine and return a specification of the Numato device.
 
         Devices with 8, 16, 32, 64 and 128 ports are available.
-        The determined value is cached assuming the hardware doesn't change.
+        The determined spec is cached assuming the hardware doesn't change.
 
         Returns:
-            (int): Number of ports
+            (DeviceSpec): Device specification object
 
         """
-        if self._ports is None:
-            response = self._query_string("gpio readall")
-            hex_digits = len(response)
-            self._ports = hex_digits * 4
-        return self._ports
+        response = self._query_string("gpio readall")
+        hex_digits = len(response)
+        ports = hex_digits * 4
+        return device_types.spec_from_number_of_ports(ports)
 
     def setup(self, port: int, *, direction: Direction) -> None:
         """Set up a single port as input or output port."""
@@ -268,7 +273,7 @@ class NumatoUsbGpio:
         with self._rw_lock:
             self.iomask = self._mask_all_ports
             self.iodir = self._mask_all_ports
-            if self.can_notify:
+            if self.spec.supports_notification:
                 self.notify = False
             self._ser.close()
 
@@ -298,9 +303,9 @@ class NumatoUsbGpio:
         """Read the voltage level at a given ADC capable port.
 
         Available ADC ports and their resolutions are listed in the
-        ADC_PORTS and ADC_RESOLUTION class variables.
+        device spec object.
         """
-        if str(adc_port) not in self.ADC_PORTS[self.ports]:
+        if adc_port not in self.spec.adc_ports:
             raise NumatoAdcPortError(adc_port)
         with self._rw_lock:
             # On devices with more than 32 ports, adc read command **only**
@@ -310,7 +315,7 @@ class NumatoUsbGpio:
             # in the documentation:
             # https://numato.com/docs/64-channel-usb-gpio-module-analog-inputs/
             # https://numato.com/docs/128-channel-usb-gpio-module-with-analog-inputs/
-            digits = self.ADC_READ_PORT_DIGITS[self.ports]
+            digits = self.spec.adc_port_digits
             query = f"adc read {adc_port:0{digits}}"
             self._query(query)
             try:
@@ -324,16 +329,9 @@ class NumatoUsbGpio:
                 ) from err
 
     @property
-    def can_notify(self) -> bool:
-        """Determine whether notifications are supported by the particular device."""
-        return (
-            self.ports != 8  # noqa: PLR2004
-        )  # TODO: Read notify capability from a device specification instead (issue #50)  # noqa: E501, FIX002, TD002
-
-    @property
     def notify(self) -> bool:
         """Read the notify setting from the device if not already known."""
-        if not self.can_notify:
+        if not self.spec.supports_notification:
             # notifications not supported on 8 port devices
             return False
 
@@ -363,9 +361,9 @@ class NumatoUsbGpio:
         add_event_detect(...) method. Events are logic level changes on input
         ports.
         """
-        if not self.can_notify:
+        if not self.spec.supports_notification:
             # notifications not supported on 8 port devices
-            raise NumatoNotifyNotSupportedError(self.ports)
+            raise NumatoNotifyNotSupportedError(self.spec)
 
         query = f"gpio notify {'on' if enable else 'off'}"
         expected_response = f"gpio notify {'enabled' if enable else 'disabled'}"
@@ -388,9 +386,9 @@ class NumatoUsbGpio:
         port. Note that for this mechanism to work you must also enable
         notifications calling notify(True) on this device object.
         """
-        if not self.can_notify:
+        if not self.spec.supports_notification:
             raise NumatoNotifyNotSupportedError(
-                self.ports,
+                self.spec,
                 detail="Can't install event callback.",
             )
         self._callback[port] = callback
@@ -457,7 +455,7 @@ class NumatoUsbGpio:
         not reflect the previously written state.
         """
         with self._rw_lock:
-            response = self._read_int("gpio readall", self.ports)
+            response = self._read_int("gpio readall", self.spec.ports)
             self._state = response
         return self._state
 
@@ -575,11 +573,11 @@ class NumatoUsbGpio:
         start previous value   new value        iodir mask
         """
         self._serial_read(1)
-        current_value = int(self._serial_read(self.ports // 4), 16)
+        current_value = int(self._serial_read(self.spec.ports // 4), 16)
         self._serial_read(1)
-        previous_value = int(self._serial_read(self.ports // 4), 16)
+        previous_value = int(self._serial_read(self.spec.ports // 4), 16)
         self._serial_read(1)
-        _ = int(self._serial_read(self.ports // 4), 16)  # read and discard iodir
+        _ = int(self._serial_read(self.spec.ports // 4), 16)  # read and discard iodir
 
         edges = current_value ^ previous_value
 
@@ -595,7 +593,7 @@ class NumatoUsbGpio:
                 not lv and self._edge[port] in [Edge.FALLING, Edge.BOTH]
             )
 
-        for port in range(self.ports):
+        for port in range(self.spec.ports):
             if (
                 edge_detected(port)
                 and edge_selected(port)
@@ -633,7 +631,7 @@ class NumatoUsbGpio:
                 self._ser.close()  # ends the polling loop and its thread
 
     def _check_port_range(self, port: int) -> None:
-        if port not in range(self.ports):
+        if port not in range(self.spec.ports):
             raise NumatoPortOutOfRangeError(port)
 
     def _drain_ser_buffer(self) -> None:
@@ -647,124 +645,9 @@ class NumatoUsbGpio:
                 f"dev: {self.dev_file}",
                 f"id: {self.id}",
                 f"ver: {self.ver}",
-                f"ports: {self.ports}",
+                f"ports: {self.spec.ports}",
                 f"iodir: 0x{self.iodir:0{self._hex_digits}x} ",
                 f"iomask: 0x{self.iomask:0{self._hex_digits}x}",
                 f"state: 0x{self._state:0{self._hex_digits}x}",
             ),
         )
-
-    PORTS: ClassVar[list[int]] = [8, 16, 32, 64, 128]
-
-    ADC_READ_PORT_DIGITS: ClassVar[dict[int, int]] = {
-        8: 1,
-        16: 1,
-        32: 1,
-        64: 2,
-        128: 2,
-    }
-
-    ADC_RESOLUTION: ClassVar[dict[int, int]] = {
-        8: 10,
-        16: 10,
-        32: 10,
-        64: 12,
-        128: 12,
-    }
-
-    ADC_PORTS: ClassVar[dict[int, dict[int, str]]] = {
-        8: {
-            0: "ADC0",
-            1: "ADC1",
-            2: "ADC2",
-            3: "ADC3",
-            6: "ADC4",
-            7: "ADC5",
-        },
-        16: {
-            0: "ADC0",
-            1: "ADC1",
-            2: "ADC2",
-            3: "ADC3",
-            4: "ADC4",
-            5: "ADC5",
-            6: "ADC6",
-        },
-        32: {
-            1: "ADC1",
-            2: "ADC2",
-            3: "ADC3",
-            4: "ADC4",
-            5: "ADC5",
-            6: "ADC6",
-            7: "ADC7",
-        },
-        64: {
-            0: "ADC0",
-            1: "ADC1",
-            2: "ADC2",
-            3: "ADC3",
-            4: "ADC4",
-            5: "ADC5",
-            6: "ADC6",
-            7: "ADC7",
-            8: "ADC8",
-            9: "ADC9",
-            10: "ADC10",
-            11: "ADC11",
-            12: "ADC12",
-            13: "ADC13",
-            14: "ADC14",
-            15: "ADC15",
-            16: "ADC16",
-            17: "ADC17",
-            18: "ADC18",
-            19: "ADC19",
-            20: "ADC20",
-            21: "ADC21",
-            22: "ADC22",
-            23: "ADC23",
-            24: "ADC24",
-            25: "ADC25",
-            26: "ADC26",
-            27: "ADC27",
-            28: "ADC28",
-            29: "ADC29",
-            30: "ADC30",
-            31: "ADC31",
-        },
-        128: {
-            0: "ADC0",
-            1: "ADC1",
-            2: "ADC2",
-            3: "ADC3",
-            4: "ADC4",
-            5: "ADC5",
-            6: "ADC6",
-            7: "ADC7",
-            8: "ADC8",
-            9: "ADC9",
-            10: "ADC10",
-            11: "ADC11",
-            12: "ADC12",
-            13: "ADC13",
-            14: "ADC14",
-            15: "ADC15",
-            16: "ADC16",
-            17: "ADC17",
-            18: "ADC18",
-            19: "ADC19",
-            20: "ADC20",
-            21: "ADC21",
-            22: "ADC22",
-            23: "ADC23",
-            24: "ADC24",
-            25: "ADC25",
-            26: "ADC26",
-            27: "ADC27",
-            28: "ADC28",
-            29: "ADC29",
-            30: "ADC30",
-            31: "ADC31",
-        },
-    }
