@@ -29,6 +29,7 @@ repos:
     hooks:
       - id: mypy
         name: Type checking with mypy
-        entry: mypy
+        entry: uv
+        args: [run, mypy]
         language: system
         types: [python]
