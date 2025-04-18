@@ -3,8 +3,8 @@ name: Tests
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  issue_comment:
+    types: [edited]
   workflow_call:
 
 jobs:
@@ -14,6 +14,9 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
+      - name: Dump github context
+        run: echo '${{ toJson(github) }}'
+
       - uses: actions/checkout@v3
 
       - name: Install uv
