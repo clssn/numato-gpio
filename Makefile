@@ -24,13 +24,13 @@ git:
 	@which git > /dev/null || (echo "You need to install for this command to work." && exit 1)
 
 test: uv
-	uv run pytest -n $(shell nproc) tests
+	find tests -name "test*.py" -exec uv run pytest {} \;
 
 sys-test: uv
-	uv run pytest -n 1 sys_tests
+	find sys_tests -name "test*.py" -exec uv run pytest {} \;
 
 coverage: uv
-	uv run pytest -n $(shell nproc) --cov=src --cov-report=html:doc/htmlcov tests
+	uv run pytest --cov=src --cov-report=html:doc/htmlcov tests
 
 browse-coverage: coverage uv
 	uv run python3 -m http.server -d ${PWD}/doc/htmlcov 8080

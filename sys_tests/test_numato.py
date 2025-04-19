@@ -8,7 +8,6 @@ import numato_gpio as gpio
 
 
 @pytest.fixture(name="dev")
-@pytest.mark.serial
 def dev_fixture() -> gpio.NumatoUsbGpio:
     """Fixture to acquire a numato device to be used by tests."""
     gpio.discover()

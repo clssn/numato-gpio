@@ -1,5 +1,5 @@
 {
-  "python.testing.pytestArgs": ["-n 1", "tests", "sys_tests"],
+  "python.testing.pytestArgs": ["tests", "sys_tests"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "[python]": {
