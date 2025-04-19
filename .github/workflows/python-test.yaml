@@ -62,4 +62,6 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Test
-        run: uv run --python=${{ matrix.python-version }} pytest tests/
+        run: >
+          find tests -name "test*.py"
+          -exec uv run --python=${{ matrix.python-version }} pytest {} \;
