@@ -3,14 +3,10 @@
 Responds much like a device, with quite a few abstractions".
 """  # noqa: INP001
 
-from __future__ import annotations
-
 import random
 import threading
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from numato_gpio.device_types import DeviceType
+from numato_gpio.device_types import DeviceType
 
 
 class SerialMockNotInitializedError(RuntimeError):

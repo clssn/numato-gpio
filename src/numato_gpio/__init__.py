@@ -184,7 +184,6 @@ class NumatoUsbGpio:
     def __init__(self, device: str = "/dev/ttyACM0") -> None:
         """Open a serial connection to a Numato device and initialize it."""
         self.dev_file = device
-        self._device_spec = None
         self._state = 0
         self._buf = ""
         self._poll_thread = threading.Thread(target=self._poll, daemon=True)
