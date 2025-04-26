@@ -21,39 +21,32 @@ See the [changelog](changelog.md) for details on the releases.
 
 ## Install uv
 
-Uv is currently by far the fastest and most modern Python project and dependency
-management tool written in Rust and inspired by Rust's `cargo`. `uv` covers the
-whole Python development environment including but not limited to installation
-of Python interpreters, dependency-version and package management and
-transparent isolation in virtual environments. It also enables one-off
-executions of packages with `uvx`.
+Uv is currently by far the fastest and most modern Python project and dependency management tool written in Rust and inspired by Rust's `cargo`.
+`uv` covers the whole Python development environment including but not limited to installation of Python interpreters, dependency-version and package management and transparent isolation in virtual environments.
+It also enables one-off executions of packages with `uvx`.
 
 ---
 **Note:**
 
-This readme, only covers the Linux operating system. Refer to the [uv
-documentation](https://docs.astral.sh/uv/getting-started/installation/#installing-uv)
-to learn how to install and use uv on MacOS or Windows. Keep in mind
-though that the specifics of device accessibilty typically vary across
-operating systems and numato-gpio is at present only tested on Linux.
+This readme, only covers the Linux operating system.
+Refer to the [uv documentation](https://docs.astral.sh/uv/getting-started/installation/#installing-uv) to learn how to install and use uv on MacOS or Windows.
+Keep in mind though that the specifics of device accessibilty typically vary across operating systems and numato-gpio is at present only tested on Linux.
 
 ---
 
-To install uv, you'll only need curl and a shell, which should already be
-present on basically any Linux installation.
+To install uv, you'll only need curl and a shell.
+Both are typically already installed on any Linux installation.
 
     curl -LsSf https://astral.sh/uv/install.sh | sh
 
 
 ## Preparation
 
-First, attach the numato device via USB. Ensure you've got read/write access to
-the device. With `dmesg` you can find out which device file the board was made
-available by after attaching it, e.g. `/dev/ttyACM0`. With `ls -l /dev/ttyACM0`
-you'll then be able to see which user and group the device file belongs to and
-see the permission. Usually the device will be owned by user `root` and group
-`dialout`. The common way of getting r/w permission for your user is, to join the
-`dialout` group like `sudo adduser your_username dialout`.
+First, attach the numato device via USB. Ensure you've got read/write access to the device.
+With `dmesg` you can find out which device file the board was made available by after attaching it, e.g. `/dev/ttyACM0`.
+With `ls -l /dev/ttyACM0` you'll then be able to see which user and group the device file belongs to and see the permission.
+Usually the device will be owned by user `root` and group `dialout`.
+The common way of getting r/w permission for your user is, to join the `dialout` group like `sudo adduser your_username dialout`.
 
 ## One-off exection of numato-gpio's numato-discover with uvx
 
@@ -120,14 +113,12 @@ See [changelog](changelog.md).
 
 ## Troubleshooting
 
-In case your device can't be discovered or you even get an error message or
-stacktrace, please follow the [troubleshooting guide](doc/troubleshooting.md).
+In case your device can't be discovered or you even get an error message or stacktrace, please follow the [troubleshooting guide](doc/troubleshooting.md).
 
 ## Known Issues
 
-Though the code works well in a [Home Assistant](https://home-assistant.io)
-integration since 2018, there are quite some aspects to improve. The following
-issues are only the ones the author is aware of:
+Though the code works well in a [Home Assistant](https://home-assistant.io) integration since 2018, there are quite some aspects to improve.
+The following issues are only the ones the author is aware of:
 
 * Some docstrings are hard to understand
 * Device discovery/registry as module-global dict is sub-optimal
@@ -136,8 +127,8 @@ issues are only the ones the author is aware of:
 
 ## Install development environment
 
-If you plan to make a contribution use `uv` to set-up your development having uv
-install the dependencies and the numato-project (editable) in a virtualenv.
+If you plan to make a contribution use `uv` to set-up your development environment.
+Uv installs the dependencies and the numato-project (editable) in a virtualenv.
 
     uv sync
 
@@ -145,22 +136,16 @@ You can now activate the virtualenv (.venv directory) like
 
     source .venv/bin/activate
 
-If you use VSCode or similar IDEs, ensure that their Python environment is
-configured to the .venv directory so their tools, like Debugger, Test Explorer
-etc., work.
+If you use VSCode or similar IDEs, ensure that their Python environment is configured to the .venv directory so their tools, like Debugger, Test Explorer etc., work.
 
-Note that all commands of the Makefile are using `uv run` or `uvx`, so you
-don't have to activate the virtualenv before calling them.
+Note that all commands of the Makefile are using `uv run` or `uvx`, so you don't have to activate the virtualenv before calling them.
 
 ## System Tests
 
-Unit tests in the `tests` directory are using a device mockup which mimicks
-a Numato device's responses as far as known at the state of development.
+Unit tests in the `tests` directory are using a device mockup which mimicks a Numato device's responses as far as known at the state of development.
 
-System tests in the `sys_tests` folder are meant to be run using a real device
-and will just fail, if no device is connected. They are an important complement
-to unit tests, because they are *the real thing* and might behave differently
-than the mockup device for the unit tests.
+System tests in the `sys_tests` folder are meant to be run using a real device and will just fail, if no device is connected.
+They are an important complement to unit tests, because they are *the real thing* and might behave differently than the mockup device for the unit tests.
 
 If you consider to run system tests you should be aware that it may be
 dangerous running them.
@@ -168,6 +153,6 @@ dangerous running them.
 ---
 **WARNING**
 
-Only run the system tests with *gpio ports disconnected*! You otherwise risk a
-short circuit which may lead to damage or destruction of your device or worse.
+Only run the system tests with *gpio ports disconnected*!
+You otherwise risk a short circuit which may lead to damage or destruction of your device or worse.
 ---
