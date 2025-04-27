@@ -1,5 +1,6 @@
 """Ensure that notifications are correctly handled anywhere in the input stream."""
 
+import time
 from enum import Enum
 from unittest.mock import Mock
 
@@ -55,7 +56,14 @@ def test_notify(mock_gpio: numato_gpio.NumatoUsbGpio, position: Position) -> Non
             with pytest.raises(numato_gpio.NumatoNotifyNotSupportedError):
                 mock_gpio.add_event_detect(p, cb, numato_gpio.Edge.BOTH)
         port_callbacks.append(cb)
+
+    # query the device to provoke injection of notifications into the response
     mock_gpio.readall()
+
+    if position == Position.BACK:
+        # short delay as readall() returns while the notification is processed
+        time.sleep(0.3)
+
     if mock_gpio.spec.supports_notification:
         for p, cb in enumerate(port_callbacks):
             cb.assert_called_with(p, True)  # noqa: FBT003
