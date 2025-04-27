@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from contextlib import suppress
 from enum import Enum
 from functools import cached_property
@@ -614,6 +615,7 @@ class NumatoUsbGpio:
         try:
             while self._ser and self._ser.is_open:
                 if not (b := self._serial_read(1).decode()):
+                    time.sleep(0)
                     continue
 
                 if b != "#":
