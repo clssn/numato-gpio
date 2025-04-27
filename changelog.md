@@ -20,11 +20,11 @@ Release 0.13.0
 This release is going to make many variants of the Numato devices compatible.
 
 Those variants' major differences are in the end-of-line sequences of responses
-to queries and notificastions. Worse, in some cases they are not even uniform
+to queries and notifications. Worse, in some cases they are not even uniform
 across responses and notifications of a single device variant. Consequently,
 this version now completely discards all end-of-line characters while reading
 which also simplifies the reading code a lot. Discarding is possible as all
-device resonses are either known by their length or are terminated by the
+device responses are either known by their length or are terminated by the
 `>` prompt character.
 
 Breaking change:

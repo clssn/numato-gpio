@@ -30,7 +30,7 @@ It also enables one-off executions of packages with `uvx`.
 
 This readme, only covers the Linux operating system.
 Refer to the [uv documentation](https://docs.astral.sh/uv/getting-started/installation/#installing-uv) to learn how to install and use uv on MacOS or Windows.
-Keep in mind though that the specifics of device accessibilty typically vary across operating systems and numato-gpio is at present only tested on Linux.
+Keep in mind though that the specifics of device accessibility typically vary across operating systems and numato-gpio is at present only tested on Linux.
 
 ---
 
@@ -48,7 +48,7 @@ With `ls -l /dev/ttyACM0` you'll then be able to see which user and group the de
 Usually the device will be owned by user `root` and group `dialout`.
 The common way of getting r/w permission for your user is, to join the `dialout` group like `sudo adduser your_username dialout`.
 
-## One-off exection of numato-gpio's numato-discover with uvx
+## One-off execution of numato-gpio's numato-discover with uvx
 
 To test whether your devices can be found, run the command-line interface like
 
@@ -142,7 +142,7 @@ Note that all commands of the Makefile are using `uv run` or `uvx`, so you don't
 
 ## System Tests
 
-Unit tests in the `tests` directory are using a device mockup which mimicks a Numato device's responses as far as known at the state of development.
+Unit tests in the `tests` directory are using a device mockup which mimics a Numato device's responses as far as known at the state of development.
 
 System tests in the `sys_tests` folder are meant to be run using a real device and will just fail, if no device is connected.
 They are an important complement to unit tests, because they are *the real thing* and might behave differently than the mockup device for the unit tests.

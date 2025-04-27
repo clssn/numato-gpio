@@ -66,7 +66,7 @@ class NumatoUnexpectedResponseError(NumatoGpioError):
     """Wrong ADC value error."""
 
     def __init__(self, query: str, resp: str, why: str = "") -> None:
-        """Initialize error message detaling what and why it's unexpected."""
+        """Initialize error message detailing what and why it's unexpected."""
         super().__init__(
             f"Query '{query!r}' returned unexpected result {resp!r}. {why}",
         )
@@ -87,7 +87,7 @@ class NumatoQueryEchoError(NumatoGpioError):
     """Query not echoed correctly by the device."""
 
     def __init__(self, query: str, echo: str) -> None:
-        """Explain the error refering to the query and its unexpected echo."""
+        """Explain the error referring to the query and its unexpected echo."""
         super().__init__(f"Query {query!r} returned unexpected echo {echo!r}")
 
 
@@ -163,7 +163,7 @@ def discover(dev_files: list[str] = DEFAULT_DEVICES) -> None:
 def cleanup() -> None:
     """Cleanup of all discovered devices' serial connections.
 
-    This is inteded to be called during termination of the application or
+    This is intended to be called during termination of the application or
     during re-configuration before re-discovering the devices.
     """
     for dev_id in list(devices.keys()):
@@ -502,7 +502,7 @@ class NumatoUsbGpio:
         """Consume an exact string from the input buffer.
 
         Reads only the amount of characters and ensures that the string matches
-        expecations. Otherwise raises an error.
+        expectations. Otherwise raises an error.
 
         Doesn't return the string as the user's already got it.
         """
@@ -644,7 +644,7 @@ class NumatoUsbGpio:
             pass
 
     def __str__(self) -> str:
-        """Return human readable string of the device's curent state."""
+        """Return human readable string of the device's current state."""
         return " | ".join(
             (
                 f"dev: {self.dev_file}",
