@@ -6,7 +6,7 @@ collect information about the problem before opening an issue.
 
 # Collect some information
 
-0. Connnect your device
+0. Connect your device
 
 1. Power LED (if available on your device) is on
 
@@ -39,7 +39,7 @@ collect information about the problem before opening an issue.
 
 5. Install GNU Screen (on Ubuntu `sudo apt screen` ) and connect it to your
    device with `screen /dev/ttyACM0`. Now try to reproduce the following
-   command/anwser sequence:
+   command/answer sequence:
 
         id get
         00000000

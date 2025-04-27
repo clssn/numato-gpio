@@ -31,6 +31,7 @@ numato-discover = "numato_gpio.__main__:main"
 
 [dependency-groups]
 dev = [
+    "codespell>=2.4.1",
     "mypy>=1.15.0",
     "pytest>=8.3.3",
     "pytest-cov>=5.0.0",
