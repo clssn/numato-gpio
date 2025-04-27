@@ -34,6 +34,8 @@ jobs:
 
       - name: Pre-commit
         run: uv run uvx pre-commit run --all
+        env:
+          SKIP_TESTS: 1
 
       - name: Validate Numato documentation URLs
         run: uv run scripts/broken_urls.py
@@ -63,5 +65,4 @@ jobs:
 
       - name: Test
         run: >
-          find tests -name "test*.py"
-          -exec uv run --python=${{ matrix.python-version }} pytest {} \;
+          uv run --python=${{ matrix.python-version }} pytest tests
