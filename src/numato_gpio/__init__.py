@@ -212,6 +212,10 @@ class NumatoUsbGpio:
                 f"Device {self.dev_file} doesn't answer like a numato device: {err}",
             ) from err
 
+    def __del__(self) -> None:
+        """Remove the polling-thread."""
+        self.cleanup()
+
     @property
     def connected(self) -> bool:
         """Determine whether a serial connection to the device is established."""
@@ -271,11 +275,13 @@ class NumatoUsbGpio:
         output port when re-connected to e.g. a grounded input signal.
         """
         with self._rw_lock:
-            self.iomask = self._mask_all_ports
-            self.iodir = self._mask_all_ports
-            if self.spec.supports_notification:
-                self.notify = False
-            self._ser.close()
+            if self._ser.is_open:
+                self.iomask = self._mask_all_ports
+                self.iodir = self._mask_all_ports
+                if self.spec.supports_notification:
+                    self.notify = False
+                self._ser.close()
+            self._poll_thread.join()
 
     def write(self, port: int, *, value: int) -> None:
         """Write the logic level of a single port.
@@ -551,12 +557,11 @@ class NumatoUsbGpio:
         return response
 
     def _read_from_buf(self, num: int) -> str:
-        self._can_read.acquire()
-        while len(self._buf) < num:
-            self._can_read.wait()
-        response, self._buf = self._buf[0:num], self._buf[num:]
-        self._can_read.release()
-        return response
+        with self._can_read:
+            while len(self._buf) < num:
+                self._can_read.wait()
+            response, self._buf = self._buf[0:num], self._buf[num:]
+            return response
 
     def _serial_read(self, num_bytes: int) -> bytes:
         response = self._ser.read(num_bytes)
@@ -619,10 +624,9 @@ class NumatoUsbGpio:
                     continue
 
                 if b != "#":
-                    self._can_read.acquire()
-                    self._buf += b
-                    self._can_read.notify()
-                    self._can_read.release()
+                    with self._can_read:
+                        self._buf += b
+                        self._can_read.notify()
                     continue
 
                 self._read_notification()
