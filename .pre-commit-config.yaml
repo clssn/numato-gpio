@@ -8,35 +8,43 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
-  - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.0
-    hooks:
-      - id: yamllint
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.5
+  - repo: local
     hooks:
+      - id: uv-lock
+        name: update uv lock-file
+        entry: uv sync
+        language: system
+        files: ^(pyproject\.toml|uv\.lock)$
+        pass_filenames: false
+      - id: mypy
+        name: type-check python files with mypy
+        entry: uv run mypy
+        language: system
+        types: [python]
+      - id: pytest
+        name: run unit tests
+        entry: bash -c '[[ -n "$SKIP_TESTS" ]] || uv run pytest tests'
+        language: system
+        types: [python]
       - id: ruff
-        args: [--fix]
+        name: lint python files
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
       - id: ruff-format
+        name: Format python files
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: yamllint
+        name: lint yaml files
+        entry: yamllint
+        language: system
+        types: [yaml]
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
-        additional_dependencies: ["prettier"]
         files: "\\.json$"
-
-  - repo: local
-    hooks:
-      - id: mypy
-        name: Type checking with mypy
-        entry: uv
-        args: [run, mypy]
-        language: system
-        types: [python]
-      - id: pytest
-        name: Run unit tests
-        entry: bash -c '[[ -n "$SKIP_TESTS" ]] || uv run pytest tests'
-        language: system
-        types: [python]
