@@ -62,3 +62,4 @@ def test_notify(mock_gpio: numato_gpio.NumatoUsbGpio, position: Position) -> Non
     else:
         assert not any(cb.called for cb in port_callbacks)
     mock_gpio.cleanup()
+    assert not mock_gpio._poll_thread.is_alive()  # noqa: SLF001
