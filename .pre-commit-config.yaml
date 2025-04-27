@@ -37,7 +37,6 @@ repos:
         types: [python]
       - id: pytest
         name: Run unit tests
-        entry: uv
-        args: [run, pytest, tests]
+        entry: bash -c '[[ -n "$SKIP_TESTS" ]] || uv run pytest tests'
         language: system
         types: [python]
