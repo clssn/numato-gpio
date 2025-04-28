@@ -50,17 +50,15 @@ The common way of getting r/w permission for your user is, to join the `dialout`
 
 ## One-off execution of numato-gpio's numato-discover with uvx
 
-To test whether your devices can be found, run the command-line interface like
+To test whether your devices can be found, run the command-line interface like:
 
-    `uvx --from numato-gpio numato-discover`.
+    uvx --from numato-gpio numato-discover
 
 Expected output:
 
-```
-❯ python3 -m numato_gpio
-dev: /dev/ttyACM0 | id: 0 | ver: 00000009 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
-dev: /dev/ttyACM1 | id: 1 | ver: 00000009 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
-```
+    ❯ python3 -m numato_gpio
+    dev: /dev/ttyACM0 | id: 0 | ver: 00000009 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
+    dev: /dev/ttyACM1 | id: 1 | ver: 00000009 | ports: 32 | iodir: 0xffffffff | iomask: 0x00000000 | state: 0x00000000
 
 ## Usage API
 
