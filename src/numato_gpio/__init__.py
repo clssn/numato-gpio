@@ -107,6 +107,14 @@ class NumatoPortOutOfRangeError(NumatoGpioError):
         super().__init__(f"Port number {port} out of range.")
 
 
+class NumatoCleanupError(NumatoGpioError):
+    """Error during cleanup."""
+
+    def init(self, device: NumatoUsbGpio) -> None:
+        """Initialize a readable message mentioning the device name."""
+        super(f"Cleanup of device {device._ser.name} failed.")  # noqa: SLF001
+
+
 DISCOVER_LOCK = threading.RLock()
 
 
@@ -275,13 +283,17 @@ class NumatoUsbGpio:
         output port when re-connected to e.g. a grounded input signal.
         """
         with self._rw_lock:
-            if self._ser.is_open:
-                self.iomask = self._mask_all_ports
-                self.iodir = self._mask_all_ports
-                if self.spec.supports_notification:
-                    self.notify = False
+            if hasattr(self, "_ser") and self._ser.is_open:
+                with suppress(NumatoGpioError):
+                    self.iomask = self._mask_all_ports
+                    self.iodir = self._mask_all_ports
+                    if self.spec.supports_notification:
+                        self.notify = False
                 self._ser.close()
-            self._poll_thread.join()
+            if self._poll_thread.is_alive():
+                self._poll_thread.join(timeout=1.0)
+                if self._poll_thread.is_alive():
+                    raise NumatoCleanupError(self)
 
     def write(self, port: int, *, value: int) -> None:
         """Write the logic level of a single port.
