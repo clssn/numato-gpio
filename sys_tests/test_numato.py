@@ -22,20 +22,24 @@ def test_nothing_discovered() -> None:
 
 def test_write(dev: gpio.NumatoUsbGpio) -> None:
     """Port setup and write to a particular port shall not fail."""
-    dev.setup(4, direction=gpio.Direction.OUT)
-    dev.write(4, value=1)
+    for port in range(dev.spec.ports):
+        dev.setup(port, direction=gpio.Direction.OUT)
+        dev.write(port, value=1)
+        dev.write(port, value=0)
 
 
 def test_read(dev: gpio.NumatoUsbGpio) -> None:
     """Port setup and readign from a particular port shall not fail."""
-    dev.setup(27, direction=gpio.Direction.IN)
-    assert dev.read(27) is not None
+    for port in range(dev.spec.ports):
+        dev.setup(port, direction=gpio.Direction.IN)
+        assert dev.read(port) is not None
 
 
 def test_adc_read(dev: gpio.NumatoUsbGpio) -> None:
     """Port setup and read from ADC port shall be in ADC range 0-1023."""
-    dev.setup(2, direction=gpio.Direction.IN)
-    assert dev.adc_read(2) in range(1024)
+    for port in dev.spec.adc_ports:
+        dev.setup(port, direction=gpio.Direction.IN)
+        assert dev.adc_read(port) in range(2**dev.spec.adc_resolution_bits)
 
 
 def test_cleanup() -> None:
