@@ -1,6 +1,6 @@
 [project]
 name = "numato-gpio"
-version = "0.13.1dev0"
+version = "0.14.0"
 description = "Python API for Numato GPIO Expanders"
 authors = [{name = "Henning Claßen", email = "code@clssn.de"}]
 license = "MIT"
