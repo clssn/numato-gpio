@@ -1,4 +1,17 @@
-"""Python API for Numato USB GPIO devices."""
+"""Python API for Numato USB GPIO devices.
+
+This module provides both synchronous and asynchronous APIs for controlling
+Numato USB GPIO devices.
+
+For synchronous/threaded API, use:
+    from numato_gpio import NumatoUsbGpio, discover, devices
+
+For asynchronous API, use:
+    from numato_gpio.async_api import NumatoUsbGpioAsync, discover_async, devices_async
+
+Common enums and exceptions are available from both:
+    from numato_gpio import Direction, Edge, NumatoGpioError, ...
+"""
 
 from __future__ import annotations
 

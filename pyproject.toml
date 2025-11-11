@@ -18,6 +18,7 @@ classifiers=[
 ]
 dependencies = [
     "pyserial>=3.1,<4",
+    "pyserial-asyncio>=0.6",
     "rich>=14.0.0",
 ]
 
