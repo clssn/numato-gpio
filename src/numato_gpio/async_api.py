@@ -577,12 +577,23 @@ class NumatoUsbGpioAsync:
         response, self._buf = self._buf[0:num], self._buf[num:]
         return response
 
-    async def _serial_read(self, num_bytes: int) -> bytes:
-        """Read from serial connection."""
+    async def _serial_read_direct(self, num_bytes: int) -> bytes:
+        """Read directly from serial connection (only for poll task)."""
         if not self._reader:
             return b""
         response = await self._reader.read(num_bytes)
         return self._remove_eol(response)
+
+    async def _serial_read(self, num_bytes: int) -> bytes:
+        """Read from internal buffer (for command methods)."""
+        # Read from buffer filled by poll task
+        result = b""
+        for _ in range(num_bytes):
+            char = await self._read_from_buf(1)
+            if not char:
+                break
+            result += char.encode()
+        return result
 
     async def _read_notification(self) -> None:
         """Read a notification and call any registered callbacks.
@@ -595,12 +606,12 @@ class NumatoUsbGpioAsync:
         start previous value   new value        iodir mask
         """
         spec = await self.get_spec()
-        await self._serial_read(1)
-        current_value = int(await self._serial_read(spec.ports // 4), 16)
-        await self._serial_read(1)
-        previous_value = int(await self._serial_read(spec.ports // 4), 16)
-        await self._serial_read(1)
-        _ = int(await self._serial_read(spec.ports // 4), 16)  # read and discard iodir
+        await self._serial_read_direct(1)
+        current_value = int(await self._serial_read_direct(spec.ports // 4), 16)
+        await self._serial_read_direct(1)
+        previous_value = int(await self._serial_read_direct(spec.ports // 4), 16)
+        await self._serial_read_direct(1)
+        _ = int(await self._serial_read_direct(spec.ports // 4), 16)  # read and discard iodir
 
         edges = current_value ^ previous_value
 
@@ -641,7 +652,7 @@ class NumatoUsbGpioAsync:
         """
         try:
             while self._writer and not self._writer.is_closing():
-                b_bytes = await self._serial_read(1)
+                b_bytes = await self._serial_read_direct(1)
                 if not b_bytes:
                     await asyncio.sleep(0)
                     continue
@@ -665,7 +676,7 @@ class NumatoUsbGpioAsync:
             raise NumatoPortOutOfRangeError(port)
 
     async def _drain_ser_buffer(self) -> None:
-        while await self._serial_read(DEVICE_BUFFER_SIZE):
+        while await self._serial_read_direct(DEVICE_BUFFER_SIZE):
             pass
 
     async def __aenter__(self) -> NumatoUsbGpioAsync:

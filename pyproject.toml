@@ -55,3 +55,6 @@ lint.ignore = ["COM812", "ISC001", "D211", "D213", "D203", "EM102"]
 strict = false
 ignore_missing_imports = true
 warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import pytest_asyncio
 from serialmock import SerialMockBase, serialmock
 from serialmock_async import create_async_serial_mock_factory
 
@@ -46,7 +47,7 @@ def mock_serial_async(request):
         yield serial_mock, device_type
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_gpio_async(mock_serial_async) -> NumatoUsbGpioAsync:  # noqa: ARG001
     """Initialize a NumatoUsbGpioAsync object for any supported device."""
     device = await NumatoUsbGpioAsync.create("/dev/ttyACMxx")

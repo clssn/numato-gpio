@@ -35,13 +35,20 @@ class MockStreamReader:
         while len(result) < n:
             # If we've consumed the current chunk, get a new one
             if self._position >= len(self._current_chunk):
+                # If we have some data already, check if more is available
+                if result and self._buffer.empty():
+                    # Return what we have so far
+                    break
+
                 try:
+                    # Wait for data with timeout (shorter if we already have some data)
+                    timeout = 0.01 if result else 1.0
                     self._current_chunk = await asyncio.wait_for(
-                        self._buffer.get(), timeout=1.0
+                        self._buffer.get(), timeout=timeout
                     )
                     self._position = 0
                 except asyncio.TimeoutError:
-                    # No more data available
+                    # Timeout - return what we have
                     break
 
             # Read from current chunk
